@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown, Filter, X } from "lucide-react";
 import type { Camera, Status } from "@/lib/alertwest";
 
