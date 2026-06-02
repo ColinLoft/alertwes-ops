@@ -1,18 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
-import { fetchCameras, getStatus, parseViewLine, type Camera, type Status } from "@/lib/alertwest";
+import { fetchCameras, getStatus, parseViewLine, relTime, type Camera, type Status } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
 import { FilterBar, emptyFilters, type Filters } from "./FilterBar";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { Flame, RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, Flame, RefreshCw, Search, WifiOff, X } from "lucide-react";
 
-function makeIcon(color: string, active: boolean, pulse: boolean) {
+function makeIcon(color: string, active: boolean, pulse: boolean, label: string) {
+  const safe = label.replace(/"/g, "&quot;");
   return L.divIcon({
     className: "",
-    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}"></div>`,
+    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}" role="button" tabindex="0" aria-label="${safe}"></div>`,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
   });
@@ -26,13 +27,42 @@ function FlyTo({ target }: { target: [number, number] | null }) {
   return null;
 }
 
+function useOnlineStatus() {
+  const [online, setOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+  return online;
+}
+
 export function CameraMap() {
-  const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
+  const online = useOnlineStatus();
+  const { data, isLoading, isFetching, error, refetch, dataUpdatedAt, failureCount } = useQuery({
     queryKey: ["aw-cameras"],
     queryFn: fetchCameras,
     refetchInterval: 60_000,
     staleTime: 30_000,
+    // Exponential backoff retry on failure (per-fetch). React Query also keeps last good data.
+    retry: 4,
+    retryDelay: (attempt) => Math.min(30_000, 1000 * 2 ** attempt),
+    refetchOnWindowFocus: true,
   });
+
+  // Auto-retry once when the browser comes back online
+  useEffect(() => {
+    if (online && error) refetch();
+  }, [online, error, refetch]);
+
+
 
   const cameras = useMemo(() => data ?? [], [data]);
   const history = useCameraHistory(cameras, dataUpdatedAt);
