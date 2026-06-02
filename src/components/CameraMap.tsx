@@ -153,16 +153,21 @@ export function CameraMap() {
 
         <div className="pointer-events-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md sm:flex">
-            <span className="font-medium text-foreground">{visibleCameras.length}</span>
+            <span className="font-medium text-foreground" aria-label={`${visibleCameras.length} of ${cameras.length} cameras visible`}>
+              {visibleCameras.length}
+            </span>
             <span>/ {cameras.length}</span>
-            <span className="ml-1 inline-flex items-center gap-1">
+            <span className="ml-1 inline-flex items-center gap-1" aria-hidden="true">
               <Legend color="#22c55e" />
               <Legend color="#f4a261" />
               <Legend color="#ef4444" />
             </span>
             {dataUpdatedAt > 0 && (
-              <span className="ml-2">
-                · {new Date(dataUpdatedAt).toLocaleTimeString()}
+              <span
+                className="ml-2"
+                title={`Last successful fetch: ${new Date(dataUpdatedAt).toLocaleString()}`}
+              >
+                · last fetch {relTime(dataUpdatedAt)}
               </span>
             )}
           </div>
