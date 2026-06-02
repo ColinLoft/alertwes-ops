@@ -173,10 +173,12 @@ export function CameraMap() {
           </div>
           <button
             onClick={() => setShowSearch((v) => !v)}
-            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground"
             aria-label="Search cameras"
+            aria-expanded={showSearch}
+            aria-controls="aw-search-popover"
+            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Search className="h-4 w-4" />
+            <Search className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => refetch()}
