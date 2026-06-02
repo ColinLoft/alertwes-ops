@@ -93,6 +93,8 @@ export function CameraPanel({
             frames={history}
             activeUrl={display?.url ?? null}
             onSelect={(f) => setPreviewOverride(f)}
+            onReturnLive={() => setPreviewOverride(null)}
+            isLiveActive={!previewOverride}
           />
 
           <PTZDisplay camera={camera} />
