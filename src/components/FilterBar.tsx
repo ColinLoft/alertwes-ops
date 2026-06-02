@@ -172,22 +172,53 @@ function FilterDropdown({
   onToggle: () => void;
   children: React.ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onToggle();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onToggle();
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, onToggle]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <button
         onClick={onToggle}
-        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-card ${
           count > 0
             ? "bg-primary/15 text-primary"
             : "text-foreground hover:bg-accent hover:text-accent-foreground"
         }`}
       >
         {label}
-        {count > 0 && <span className="font-semibold">·{count}</span>}
-        <ChevronDown className="h-3 w-3 opacity-70" />
+        {count > 0 && (
+          <span className="font-semibold" aria-label={`${count} selected`}>
+            ·{count}
+          </span>
+        )}
+        <ChevronDown className="h-3 w-3 opacity-70" aria-hidden="true" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-[1100] mt-1 max-h-72 w-56 overflow-y-auto rounded-md border border-border bg-popover/95 p-1 shadow-xl backdrop-blur-md">
+        <div
+          id={menuId}
+          role="menu"
+          aria-label={`${label} filter options`}
+          className="absolute left-0 top-full z-[1100] mt-1 max-h-72 w-56 overflow-y-auto rounded-md border border-border bg-popover/95 p-1 shadow-xl backdrop-blur-md"
+        >
           {children}
         </div>
       )}
@@ -209,12 +240,15 @@ function CheckRow({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent ${
+      role="menuitemcheckbox"
+      aria-checked={checked}
+      className={`flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent focus:bg-accent focus:outline-none ${
         checked ? "text-foreground" : "text-muted-foreground"
       }`}
     >
       <span className="flex items-center gap-2">
         <span
+          aria-hidden="true"
           className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border ${
             checked ? "border-primary bg-primary text-primary-foreground" : "border-border"
           }`}
@@ -223,7 +257,12 @@ function CheckRow({
         </span>
         {label}
       </span>
-      {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
+      {hint && (
+        <span className="text-[10px] text-muted-foreground" aria-label={`${hint} cameras`}>
+          {hint}
+        </span>
+      )}
     </button>
   );
 }
+
