@@ -1,29 +1,41 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
+
+const CameraMap = lazy(() =>
+  import("@/components/CameraMap").then((m) => ({ default: m.CameraMap })),
+);
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "ALERTWest — Wildfire Camera Network" },
+      {
+        name: "description",
+        content:
+          "Live map of ALERTWest's wildfire detection cameras across the western US. Powered by the public ALERTWest API.",
+      },
+      { property: "og:title", content: "ALERTWest — Wildfire Camera Network" },
+      {
+        property: "og:description",
+        content:
+          "Live map of ALERTWest's wildfire detection cameras across the western US.",
+      },
     ],
   }),
   component: Index,
+  ssr: false,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-screen items-center justify-center bg-background text-sm text-muted-foreground">
+          Loading map…
+        </div>
+      }
     >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+      <CameraMap />
+    </Suspense>
   );
 }
