@@ -192,7 +192,7 @@ export function CameraMap() {
 
       {/* Search dropdown */}
       {showSearch && (
-        <div className="absolute right-3 top-16 z-[1000] w-[min(360px,calc(100vw-1.5rem))] rounded-lg border border-border bg-card/95 p-2 backdrop-blur-md sm:right-4">
+        <div id="aw-search-popover" role="dialog" aria-label="Search cameras" className="absolute right-3 top-16 z-[1000] w-[min(360px,calc(100vw-1.5rem))] rounded-lg border border-border bg-card/95 p-2 backdrop-blur-md sm:right-4">
           <div className="flex items-center gap-2 border-b border-border px-2 pb-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
