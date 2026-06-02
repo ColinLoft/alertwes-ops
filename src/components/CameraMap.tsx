@@ -126,6 +126,69 @@ export function CameraMap() {
       .slice(0, 30);
   }, [visibleCameras, query]);
 
+  const [showHelp, setShowHelp] = useState(false);
+
+  // Global keyboard shortcuts
+  useGlobalShortcuts((e) => {
+    const key = e.key;
+
+    // Open search: "/" or Cmd/Ctrl+K
+    if (key === "/" || ((e.metaKey || e.ctrlKey) && key.toLowerCase() === "k")) {
+      e.preventDefault();
+      setShowSearch(true);
+      return;
+    }
+
+    if (key === "Escape") {
+      if (showHelp) { setShowHelp(false); return; }
+      if (showSearch) { setShowSearch(false); setQuery(""); return; }
+      if (selectedId) { setSelectedId(null); return; }
+      return;
+    }
+
+    if (key === "?") {
+      e.preventDefault();
+      setShowHelp((v) => !v);
+      return;
+    }
+
+    if (key === "r" || key === "R") {
+      e.preventDefault();
+      refetch();
+      return;
+    }
+
+    // Camera navigation
+    if (key === "j" || key === "ArrowRight" || key === "k" || key === "ArrowLeft") {
+      if (visibleCameras.length === 0) return;
+      e.preventDefault();
+      const dir = key === "j" || key === "ArrowRight" ? 1 : -1;
+      const idx = visibleCameras.findIndex((c) => c.site.id === selectedId);
+      const next = idx === -1
+        ? (dir > 0 ? 0 : visibleCameras.length - 1)
+        : (idx + dir + visibleCameras.length) % visibleCameras.length;
+      setSelectedId(visibleCameras[next].site.id);
+      return;
+    }
+
+    // Timeline controls (only meaningful when a camera is selected)
+    if (!selectedId) return;
+    if (key === " " || key === "Spacebar") {
+      e.preventDefault();
+      dispatchTimeline("toggle");
+    } else if (key === "." || key === ">") {
+      e.preventDefault();
+      dispatchTimeline("next");
+    } else if (key === "," || key === "<") {
+      e.preventDefault();
+      dispatchTimeline("prev");
+    } else if (key === "l" || key === "L") {
+      e.preventDefault();
+      dispatchTimeline("live");
+    }
+  });
+
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-background text-foreground">
       {/* Header */}
