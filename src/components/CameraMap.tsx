@@ -3,14 +3,16 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
-import { fetchCameras, parseViewLine, type Camera } from "@/lib/alertwest";
+import { fetchCameras, getStatus, parseViewLine, type Camera, type Status } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
+import { FilterBar, emptyFilters, type Filters } from "./FilterBar";
+import { useCameraHistory } from "@/hooks/useCameraHistory";
 import { Flame, RefreshCw, Search, X } from "lucide-react";
 
-function makeIcon(active: boolean) {
+function makeIcon(color: string, active: boolean, pulse: boolean) {
   return L.divIcon({
     className: "",
-    html: `<div class="aw-marker${active ? " aw-active" : ""}"></div>`,
+    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}"></div>`,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
   });
@@ -32,10 +34,35 @@ export function CameraMap() {
     staleTime: 30_000,
   });
 
-  const cameras = data ?? [];
+  const cameras = useMemo(() => data ?? [], [data]);
+  const history = useCameraHistory(cameras, dataUpdatedAt);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [filters, setFilters] = useState<Filters>(emptyFilters());
+
+  // Pre-compute statuses
+  const statusMap = useMemo(() => {
+    const m = new Map<string, Status>();
+    for (const c of cameras) m.set(c.site.id, getStatus(c).status);
+    return m;
+  }, [cameras]);
+
+  // Apply filters
+  const visibleCameras = useMemo(() => {
+    return cameras.filter((c) => {
+      if (filters.states.size && !(c.site.state && filters.states.has(c.site.state))) return false;
+      if (filters.counties.size && !(c.site.county && filters.counties.has(c.site.county))) return false;
+      const brand = c.parameters["Brand.Brand"];
+      if (filters.brands.size && !(brand && filters.brands.has(brand))) return false;
+      if (filters.statuses.size) {
+        const s = statusMap.get(c.site.id) ?? "unknown";
+        if (!filters.statuses.has(s)) return false;
+      }
+      return true;
+    });
+  }, [cameras, filters, statusMap]);
 
   const selected = useMemo(
     () => cameras.find((c) => c.site.id === selectedId) ?? null,
@@ -58,7 +85,7 @@ export function CameraMap() {
   const filtered = useMemo(() => {
     if (!query.trim()) return [] as Camera[];
     const q = query.toLowerCase();
-    return cameras
+    return visibleCameras
       .filter(
         (c) =>
           c.name.toLowerCase().includes(q) ||
@@ -67,32 +94,45 @@ export function CameraMap() {
           (c.site.state ?? "").toLowerCase().includes(q),
       )
       .slice(0, 30);
-  }, [cameras, query]);
+  }, [visibleCameras, query]);
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-background text-foreground">
       {/* Header */}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-3 p-3 sm:p-4">
-        <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-2 backdrop-blur-md">
-          <Flame className="h-5 w-5 text-primary" />
-          <div className="leading-tight">
-            <div className="text-sm font-bold tracking-wide">
-              ALERT<span className="text-primary">West</span>
-            </div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Wildfire Camera Network
+        <div className="pointer-events-auto flex flex-col items-start gap-2">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-2 backdrop-blur-md">
+            <Flame className="h-5 w-5 text-primary" />
+            <div className="leading-tight">
+              <div className="text-sm font-bold tracking-wide">
+                ALERT<span className="text-primary">West</span>
+              </div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Wildfire Camera Network
+              </div>
             </div>
           </div>
+
+          <FilterBar
+            cameras={cameras}
+            filters={filters}
+            onChange={setFilters}
+            cameraStatuses={statusMap}
+          />
         </div>
 
         <div className="pointer-events-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md sm:flex">
-            <span className="inline-block h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary)]" />
-            <span className="font-medium text-foreground">{cameras.length}</span>
-            <span>cameras</span>
+            <span className="font-medium text-foreground">{visibleCameras.length}</span>
+            <span>/ {cameras.length}</span>
+            <span className="ml-1 inline-flex items-center gap-1">
+              <Legend color="#22c55e" />
+              <Legend color="#f4a261" />
+              <Legend color="#ef4444" />
+            </span>
             {dataUpdatedAt > 0 && (
-              <span className="ml-2 text-muted-foreground">
-                · updated {new Date(dataUpdatedAt).toLocaleTimeString()}
+              <span className="ml-2">
+                · {new Date(dataUpdatedAt).toLocaleTimeString()}
               </span>
             )}
           </div>
@@ -142,21 +182,30 @@ export function CameraMap() {
                 No matches
               </div>
             )}
-            {filtered.map((c) => (
-              <button
-                key={c.site.id}
-                onClick={() => {
-                  setSelectedId(c.site.id);
-                  setShowSearch(false);
-                }}
-                className="flex w-full flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-              >
-                <span className="font-medium">{c.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {[c.site.county, c.site.state].filter(Boolean).join(", ") || "—"}
-                </span>
-              </button>
-            ))}
+            {filtered.map((c) => {
+              const s = getStatus(c);
+              return (
+                <button
+                  key={c.site.id}
+                  onClick={() => {
+                    setSelectedId(c.site.id);
+                    setShowSearch(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                >
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: s.color, boxShadow: `0 0 6px ${s.color}` }}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{c.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {[c.site.county, c.site.state].filter(Boolean).join(", ") || "—"}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -175,16 +224,17 @@ export function CameraMap() {
         />
         <FlyTo target={flyTarget} />
 
-        {cameras.map((c) => {
+        {visibleCameras.map((c) => {
           const lat = Number(c.site.latitude);
           const lng = Number(c.site.longitude);
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
           const active = selectedId === c.site.id;
+          const s = getStatus(c);
           return (
             <Marker
               key={c.site.id}
               position={[lat, lng]}
-              icon={makeIcon(active)}
+              icon={makeIcon(s.color, active, s.status === "online")}
               eventHandlers={{ click: () => setSelectedId(c.site.id) }}
             />
           );
@@ -211,7 +261,11 @@ export function CameraMap() {
       )}
 
       {/* Detail panel */}
-      <CameraPanel camera={selected} onClose={() => setSelectedId(null)} />
+      <CameraPanel
+        camera={selected}
+        onClose={() => setSelectedId(null)}
+        history={selected ? history[selected.site.id] ?? [] : []}
+      />
 
       {/* Footer ribbon */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] flex justify-center pb-2">
@@ -220,5 +274,14 @@ export function CameraMap() {
         </div>
       </div>
     </div>
+  );
+}
+
+function Legend({ color }: { color: string }) {
+  return (
+    <span
+      className="inline-block h-2 w-2 rounded-full"
+      style={{ background: color, boxShadow: `0 0 6px ${color}` }}
+    />
   );
 }
