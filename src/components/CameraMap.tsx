@@ -296,15 +296,47 @@ export function CameraMap() {
         )}
       </MapContainer>
 
-      {/* Status messages */}
+      {/* Offline / error banners */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none absolute inset-x-0 top-[88px] z-[1000] flex flex-col items-center gap-2 px-3 sm:top-20"
+      >
+        {!online && (
+          <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/20 px-3 py-2 text-xs font-medium text-amber-100 backdrop-blur-md">
+            <WifiOff className="h-4 w-4" aria-hidden="true" />
+            <span>You're offline. Showing the last successful snapshot.</span>
+            {dataUpdatedAt > 0 && (
+              <span className="text-amber-200/80">· {relTime(new Date(dataUpdatedAt))}</span>
+            )}
+          </div>
+        )}
+        {error && online && (
+          <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/20 px-3 py-2 text-xs font-medium text-destructive-foreground backdrop-blur-md">
+            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+            <span>
+              Couldn't reach the ALERTWest API
+              {failureCount > 1 ? ` (attempt ${failureCount})` : ""}.
+              {dataUpdatedAt > 0
+                ? ` Showing data from ${relTime(new Date(dataUpdatedAt))}.`
+                : ""}
+            </span>
+            <button
+              onClick={() => refetch()}
+              className="rounded-md border border-destructive/50 bg-destructive/30 px-2 py-0.5 text-[11px] font-semibold hover:bg-destructive/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+            >
+              Retry now
+            </button>
+          </div>
+        )}
+      </div>
+
       {isLoading && (
-        <div className="absolute left-1/2 top-1/2 z-[1000] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card/90 px-4 py-3 text-sm text-muted-foreground backdrop-blur-md">
+        <div
+          role="status"
+          className="absolute left-1/2 top-1/2 z-[1000] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card/90 px-4 py-3 text-sm text-muted-foreground backdrop-blur-md"
+        >
           Loading camera network…
-        </div>
-      )}
-      {error && (
-        <div className="absolute left-1/2 top-20 z-[1000] -translate-x-1/2 rounded-lg border border-destructive/40 bg-destructive/20 px-4 py-2 text-sm text-destructive-foreground backdrop-blur-md">
-          Failed to load cameras
         </div>
       )}
 
