@@ -1,6 +1,7 @@
 import { Clock, Pause, Play, SkipBack } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { relTime } from "@/lib/alertwest";
+import { useTimelineEvents } from "@/lib/timeline-bus";
 import type { FrameRecord } from "@/hooks/useCameraHistory";
 
 const PLAY_INTERVAL_MS = 1500;
