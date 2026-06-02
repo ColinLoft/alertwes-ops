@@ -25,7 +25,12 @@ export interface Camera {
 export async function fetchCameras(): Promise<Camera[]> {
   const res = await fetch("https://api.cdn.prod.alertwest.com/api/firecams/v0/cameras");
   if (!res.ok) throw new Error(`Failed to load cameras: ${res.status}`);
-  return res.json();
+  const all = (await res.json()) as Camera[];
+  // California-only deployment
+  return all.filter((c) => {
+    const s = (c.site.state ?? "").trim().toLowerCase();
+    return s === "ca" || s === "california";
+  });
 }
 
 export function parseViewLine(line: string | null): [number, number][] | null {
