@@ -3,16 +3,17 @@ import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
-import { fetchCameras, getStatus, parseViewLine, type Camera, type Status } from "@/lib/alertwest";
+import { fetchCameras, getStatus, parseViewLine, relTime, type Camera, type Status } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
 import { FilterBar, emptyFilters, type Filters } from "./FilterBar";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { Flame, RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, Flame, RefreshCw, Search, WifiOff, X } from "lucide-react";
 
-function makeIcon(color: string, active: boolean, pulse: boolean) {
+function makeIcon(color: string, active: boolean, pulse: boolean, label: string) {
+  const safe = label.replace(/"/g, "&quot;");
   return L.divIcon({
     className: "",
-    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}"></div>`,
+    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}" role="button" tabindex="0" aria-label="${safe}"></div>`,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
   });
@@ -26,13 +27,42 @@ function FlyTo({ target }: { target: [number, number] | null }) {
   return null;
 }
 
+function useOnlineStatus() {
+  const [online, setOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+  return online;
+}
+
 export function CameraMap() {
-  const { data, isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
+  const online = useOnlineStatus();
+  const { data, isLoading, isFetching, error, refetch, dataUpdatedAt, failureCount } = useQuery({
     queryKey: ["aw-cameras"],
     queryFn: fetchCameras,
     refetchInterval: 60_000,
     staleTime: 30_000,
+    // Exponential backoff retry on failure (per-fetch). React Query also keeps last good data.
+    retry: 4,
+    retryDelay: (attempt) => Math.min(30_000, 1000 * 2 ** attempt),
+    refetchOnWindowFocus: true,
   });
+
+  // Auto-retry once when the browser comes back online
+  useEffect(() => {
+    if (online && error) refetch();
+  }, [online, error, refetch]);
+
+
 
   const cameras = useMemo(() => data ?? [], [data]);
   const history = useCameraHistory(cameras, dataUpdatedAt);
@@ -123,25 +153,32 @@ export function CameraMap() {
 
         <div className="pointer-events-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md sm:flex">
-            <span className="font-medium text-foreground">{visibleCameras.length}</span>
+            <span className="font-medium text-foreground" aria-label={`${visibleCameras.length} of ${cameras.length} cameras visible`}>
+              {visibleCameras.length}
+            </span>
             <span>/ {cameras.length}</span>
-            <span className="ml-1 inline-flex items-center gap-1">
+            <span className="ml-1 inline-flex items-center gap-1" aria-hidden="true">
               <Legend color="#22c55e" />
               <Legend color="#f4a261" />
               <Legend color="#ef4444" />
             </span>
             {dataUpdatedAt > 0 && (
-              <span className="ml-2">
-                · {new Date(dataUpdatedAt).toLocaleTimeString()}
+              <span
+                className="ml-2"
+                title={`Last successful fetch: ${new Date(dataUpdatedAt).toLocaleString()}`}
+              >
+                · last fetch {relTime(new Date(dataUpdatedAt))}
               </span>
             )}
           </div>
           <button
             onClick={() => setShowSearch((v) => !v)}
-            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground"
             aria-label="Search cameras"
+            aria-expanded={showSearch}
+            aria-controls="aw-search-popover"
+            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <Search className="h-4 w-4" />
+            <Search className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => refetch()}
@@ -155,7 +192,7 @@ export function CameraMap() {
 
       {/* Search dropdown */}
       {showSearch && (
-        <div className="absolute right-3 top-16 z-[1000] w-[min(360px,calc(100vw-1.5rem))] rounded-lg border border-border bg-card/95 p-2 backdrop-blur-md sm:right-4">
+        <div id="aw-search-popover" role="dialog" aria-label="Search cameras" className="absolute right-3 top-16 z-[1000] w-[min(360px,calc(100vw-1.5rem))] rounded-lg border border-border bg-card/95 p-2 backdrop-blur-md sm:right-4">
           <div className="flex items-center gap-2 border-b border-border px-2 pb-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
@@ -230,12 +267,25 @@ export function CameraMap() {
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
           const active = selectedId === c.site.id;
           const s = getStatus(c);
+          const label = `${c.name}${c.site.county || c.site.state ? ` — ${[c.site.county, c.site.state].filter(Boolean).join(", ")}` : ""} (${s.label})`;
           return (
             <Marker
               key={c.site.id}
               position={[lat, lng]}
-              icon={makeIcon(s.color, active, s.status === "online")}
-              eventHandlers={{ click: () => setSelectedId(c.site.id) }}
+              icon={makeIcon(s.color, active, s.status === "online", label)}
+              keyboard
+              alt={label}
+              title={label}
+              eventHandlers={{
+                click: () => setSelectedId(c.site.id),
+                keydown: (ev) => {
+                  const oe = (ev as unknown as { originalEvent: KeyboardEvent }).originalEvent;
+                  if (oe && (oe.key === "Enter" || oe.key === " ")) {
+                    oe.preventDefault();
+                    setSelectedId(c.site.id);
+                  }
+                },
+              }}
             />
           );
         })}
@@ -248,15 +298,47 @@ export function CameraMap() {
         )}
       </MapContainer>
 
-      {/* Status messages */}
+      {/* Offline / error banners */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none absolute inset-x-0 top-[88px] z-[1000] flex flex-col items-center gap-2 px-3 sm:top-20"
+      >
+        {!online && (
+          <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/20 px-3 py-2 text-xs font-medium text-amber-100 backdrop-blur-md">
+            <WifiOff className="h-4 w-4" aria-hidden="true" />
+            <span>You're offline. Showing the last successful snapshot.</span>
+            {dataUpdatedAt > 0 && (
+              <span className="text-amber-200/80">· {relTime(new Date(dataUpdatedAt))}</span>
+            )}
+          </div>
+        )}
+        {error && online && (
+          <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/20 px-3 py-2 text-xs font-medium text-destructive-foreground backdrop-blur-md">
+            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+            <span>
+              Couldn't reach the ALERTWest API
+              {failureCount > 1 ? ` (attempt ${failureCount})` : ""}.
+              {dataUpdatedAt > 0
+                ? ` Showing data from ${relTime(new Date(dataUpdatedAt))}.`
+                : ""}
+            </span>
+            <button
+              onClick={() => refetch()}
+              className="rounded-md border border-destructive/50 bg-destructive/30 px-2 py-0.5 text-[11px] font-semibold hover:bg-destructive/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+            >
+              Retry now
+            </button>
+          </div>
+        )}
+      </div>
+
       {isLoading && (
-        <div className="absolute left-1/2 top-1/2 z-[1000] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card/90 px-4 py-3 text-sm text-muted-foreground backdrop-blur-md">
+        <div
+          role="status"
+          className="absolute left-1/2 top-1/2 z-[1000] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card/90 px-4 py-3 text-sm text-muted-foreground backdrop-blur-md"
+        >
           Loading camera network…
-        </div>
-      )}
-      {error && (
-        <div className="absolute left-1/2 top-20 z-[1000] -translate-x-1/2 rounded-lg border border-destructive/40 bg-destructive/20 px-4 py-2 text-sm text-destructive-foreground backdrop-blur-md">
-          Failed to load cameras
         </div>
       )}
 
