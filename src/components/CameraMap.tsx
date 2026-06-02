@@ -7,7 +7,9 @@ import { fetchCameras, getStatus, parseViewLine, relTime, type Camera, type Stat
 import { CameraPanel } from "./CameraPanel";
 import { FilterBar, emptyFilters, type Filters } from "./FilterBar";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { AlertTriangle, Flame, RefreshCw, Search, WifiOff, X } from "lucide-react";
+import { AlertTriangle, Flame, Keyboard, RefreshCw, Search, WifiOff, X } from "lucide-react";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { dispatchTimeline } from "@/lib/timeline-bus";
 
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string) {
   const safe = label.replace(/"/g, "&quot;");
