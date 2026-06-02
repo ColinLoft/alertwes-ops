@@ -260,12 +260,25 @@ export function CameraMap() {
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
           const active = selectedId === c.site.id;
           const s = getStatus(c);
+          const label = `${c.name}${c.site.county || c.site.state ? ` — ${[c.site.county, c.site.state].filter(Boolean).join(", ")}` : ""} (${s.label})`;
           return (
             <Marker
               key={c.site.id}
               position={[lat, lng]}
-              icon={makeIcon(s.color, active, s.status === "online")}
-              eventHandlers={{ click: () => setSelectedId(c.site.id) }}
+              icon={makeIcon(s.color, active, s.status === "online", label)}
+              keyboard
+              alt={label}
+              title={label}
+              eventHandlers={{
+                click: () => setSelectedId(c.site.id),
+                keydown: (ev) => {
+                  const oe = (ev as unknown as { originalEvent: KeyboardEvent }).originalEvent;
+                  if (oe && (oe.key === "Enter" || oe.key === " ")) {
+                    oe.preventDefault();
+                    setSelectedId(c.site.id);
+                  }
+                },
+              }}
             />
           );
         })}
