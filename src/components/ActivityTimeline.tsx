@@ -47,6 +47,32 @@ export function ActivityTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, frames]);
 
+  // Respond to global keyboard shortcuts dispatched by CameraMap
+  const handleBus = useCallback(
+    (action: "toggle" | "next" | "prev" | "live") => {
+      if (action === "toggle") {
+        if (frames.length >= 2) setPlaying((p) => !p);
+        return;
+      }
+      if (action === "live") {
+        setPlaying(false);
+        onReturnLive();
+        return;
+      }
+      if (frames.length === 0) return;
+      // Frames are newest-first; "next" advances forward in time (toward live = index 0)
+      const ordered = [...frames].reverse();
+      const cur = ordered.findIndex((f) => f.url === activeUrl);
+      const start = cur < 0 ? ordered.length - 1 : cur;
+      const delta = action === "next" ? 1 : -1;
+      const ni = (start + delta + ordered.length) % ordered.length;
+      setPlaying(false);
+      onSelect(ordered[ni]);
+    },
+    [frames, activeUrl, onSelect, onReturnLive],
+  );
+  useTimelineEvents(handleBus);
+
   // Keyboard navigation across thumbnails
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
