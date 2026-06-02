@@ -414,12 +414,66 @@ export function CameraMap() {
         history={selected ? history[selected.site.id] ?? [] : []}
       />
 
-      {/* Footer ribbon */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] flex justify-center pb-2">
+      {/* Footer ribbon + keyboard help */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] flex items-center justify-center gap-2 pb-2">
+        <button
+          onClick={() => setShowHelp((v) => !v)}
+          aria-label="Show keyboard shortcuts"
+          aria-expanded={showHelp}
+          className="pointer-events-auto flex items-center gap-1 rounded-full border border-border bg-card/80 px-2.5 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur-md hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <Keyboard className="h-3 w-3" aria-hidden="true" />
+          ? Shortcuts
+        </button>
         <div className="pointer-events-auto rounded-full border border-border bg-card/80 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur-md">
-          Data via ALERTWest Public API · Not for fire detection
+          California · ALERTWest Public API · Not for fire detection
         </div>
       </div>
+
+      {showHelp && (
+        <div
+          role="dialog"
+          aria-label="Keyboard shortcuts"
+          className="absolute inset-0 z-[1100] flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-2xl"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Keyboard shortcuts</h2>
+              <button
+                onClick={() => setShowHelp(false)}
+                aria-label="Close shortcuts"
+                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <dl className="space-y-1.5 text-xs">
+              {[
+                ["/ or ⌘K", "Open search"],
+                ["J / →", "Next camera"],
+                ["K / ←", "Previous camera"],
+                ["Space", "Play / pause timeline"],
+                [". / ,", "Next / previous frame"],
+                ["L", "Return to live frame"],
+                ["R", "Refresh data"],
+                ["Esc", "Close panel / search"],
+                ["?", "Toggle this help"],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between gap-3">
+                  <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+                    {k}
+                  </kbd>
+                  <span className="text-muted-foreground">{v}</span>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
