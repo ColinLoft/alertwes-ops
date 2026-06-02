@@ -167,7 +167,7 @@ export function CameraMap() {
                 className="ml-2"
                 title={`Last successful fetch: ${new Date(dataUpdatedAt).toLocaleString()}`}
               >
-                · last fetch {relTime(dataUpdatedAt)}
+                · last fetch {relTime(new Date(dataUpdatedAt))}
               </span>
             )}
           </div>
