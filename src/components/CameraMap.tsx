@@ -344,19 +344,41 @@ export function CameraMap() {
         </div>
       )}
 
-      {/* Map */}
-      <MapContainer
-        center={settings.radius ? [settings.radius.lat, settings.radius.lng] : [39.5, -120.5]}
-        zoom={settings.defaultZoom}
-        scrollWheelZoom
-        className="h-full w-full"
-        worldCopyJump
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      {/* Map / List */}
+      {view === "list" ? (
+        <CameraList
+          cameras={visibleCameras}
+          selectedId={selectedId}
+          onSelect={(id) => setSelectedId(id)}
         />
-        <FlyTo target={flyTarget} />
+      ) : (
+        <MapContainer
+          center={settings.radius ? [settings.radius.lat, settings.radius.lng] : [39.5, -120.5]}
+          zoom={settings.defaultZoom}
+          scrollWheelZoom
+          className="h-full w-full"
+          worldCopyJump
+          zoomControl
+        >
+          <TileLayer
+            key={settings.basemap}
+            attribution={BASEMAPS[settings.basemap].attribution}
+            url={BASEMAPS[settings.basemap].url}
+            subdomains={BASEMAPS[settings.basemap].subdomains as unknown as string | string[] | undefined}
+            maxZoom={BASEMAPS[settings.basemap].maxZoom}
+          />
+          {settings.showLabels && BASEMAPS[settings.basemap].labelsUrl && (
+            <TileLayer
+              key={`${settings.basemap}-labels`}
+              url={BASEMAPS[settings.basemap].labelsUrl as string}
+              attribution=""
+              subdomains={"abcd"}
+              maxZoom={BASEMAPS[settings.basemap].maxZoom}
+            />
+          )}
+          <ScaleControl position="bottomleft" imperial metric />
+          <FlyTo target={flyTarget} />
+
 
         {settings.radius && (
           <Circle
