@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, Circle, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Circle, ScaleControl, useMap } from "react-leaflet";
 import { Link } from "@tanstack/react-router";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCameras, getStatus, parseViewLine, relTime, type Camera } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
+import { CameraList } from "./CameraList";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { AlertTriangle, Flame, Keyboard, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
+import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
-import { useSettings } from "@/lib/settings";
+import { useSettings, type Basemap } from "@/lib/settings";
+import { BASEMAPS } from "@/lib/basemaps";
 import { haversineKm } from "@/lib/geo";
 
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string) {
@@ -73,6 +75,9 @@ export function CameraMap() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [view, setView] = useState<"map" | "list">("map");
+  const [, setSettings] = useSettings();
+  const setBasemap = (id: Basemap) => setSettings((p) => ({ ...p, basemap: id }));
 
   // Apply filters from settings (state / county / radius)
   const visibleCameras = useMemo(() => {
@@ -226,6 +231,15 @@ export function CameraMap() {
           <FilterSummary settings={settings} count={visibleCameras.length} total={cameras.length} />
         </div>
 
+        {/* View tabs */}
+        <div className="pointer-events-auto flex">
+          <div role="tablist" aria-label="View mode" className="flex items-center gap-1 rounded-lg border border-border bg-card/85 p-1 backdrop-blur-md">
+            <ViewTab active={view === "map"} onClick={() => setView("map")} icon={<MapIcon className="h-3.5 w-3.5" />} label="Map" />
+            <ViewTab active={view === "list"} onClick={() => setView("list")} icon={<ListIcon className="h-3.5 w-3.5" />} label="List" />
+          </div>
+        </div>
+
+
 
         <div className="pointer-events-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md sm:flex">
@@ -330,19 +344,41 @@ export function CameraMap() {
         </div>
       )}
 
-      {/* Map */}
-      <MapContainer
-        center={settings.radius ? [settings.radius.lat, settings.radius.lng] : [39.5, -120.5]}
-        zoom={settings.defaultZoom}
-        scrollWheelZoom
-        className="h-full w-full"
-        worldCopyJump
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      {/* Map / List */}
+      {view === "list" ? (
+        <CameraList
+          cameras={visibleCameras}
+          selectedId={selectedId}
+          onSelect={(id) => setSelectedId(id)}
         />
-        <FlyTo target={flyTarget} />
+      ) : (
+        <MapContainer
+          center={settings.radius ? [settings.radius.lat, settings.radius.lng] : [39.5, -120.5]}
+          zoom={settings.defaultZoom}
+          scrollWheelZoom
+          className="h-full w-full"
+          worldCopyJump
+          zoomControl
+        >
+          <TileLayer
+            key={settings.basemap}
+            attribution={BASEMAPS[settings.basemap].attribution}
+            url={BASEMAPS[settings.basemap].url}
+            subdomains={BASEMAPS[settings.basemap].subdomains as unknown as string | string[] | undefined}
+            maxZoom={BASEMAPS[settings.basemap].maxZoom}
+          />
+          {settings.showLabels && BASEMAPS[settings.basemap].labelsUrl && (
+            <TileLayer
+              key={`${settings.basemap}-labels`}
+              url={BASEMAPS[settings.basemap].labelsUrl as string}
+              attribution=""
+              subdomains={"abcd"}
+              maxZoom={BASEMAPS[settings.basemap].maxZoom}
+            />
+          )}
+          <ScaleControl position="bottomleft" imperial metric />
+          <FlyTo target={flyTarget} />
+
 
         {settings.radius && (
           <Circle
@@ -393,7 +429,30 @@ export function CameraMap() {
             pathOptions={{ color: "#f4a261", weight: 3, opacity: 0.9, dashArray: "6 6" }}
           />
         )}
-      </MapContainer>
+        </MapContainer>
+      )}
+
+      {/* Basemap switcher (map view only) */}
+      {view === "map" && (
+        <div className="pointer-events-auto absolute right-3 top-[120px] z-[1000] flex flex-col gap-1 rounded-lg border border-border bg-card/85 p-1 backdrop-blur-md sm:right-4 sm:top-[72px]" role="radiogroup" aria-label="Basemap style">
+          {(Object.values(BASEMAPS)).map((b) => (
+            <button
+              key={b.id}
+              role="radio"
+              aria-checked={settings.basemap === b.id}
+              onClick={() => setBasemap(b.id)}
+              className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                settings.basemap === b.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+      )}
+
 
       {/* Offline / error banners */}
       <div
@@ -518,6 +577,35 @@ function Legend({ color }: { color: string }) {
     />
   );
 }
+
+function ViewTab({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
 
 function FilterSummary({
   settings,

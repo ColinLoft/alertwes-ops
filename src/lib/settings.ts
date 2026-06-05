@@ -7,6 +7,8 @@ export interface RadiusFilter {
   km: number;
 }
 
+export type Basemap = "voyager" | "streets" | "satellite" | "terrain" | "dark" | "topo";
+
 export interface Settings {
   // General
   refreshSeconds: number;
@@ -15,6 +17,8 @@ export interface Settings {
   showMarkerPulse: boolean;
   autoOpenNearest: boolean;
   defaultZoom: number;
+  basemap: Basemap;
+  showLabels: boolean;
 
   // Camera filters
   states: string[];
@@ -29,6 +33,8 @@ export const DEFAULT_SETTINGS: Settings = {
   showMarkerPulse: true,
   autoOpenNearest: false,
   defaultZoom: 6,
+  basemap: "voyager",
+  showLabels: true,
   states: ["CA"],
   counties: [],
   radius: null,
