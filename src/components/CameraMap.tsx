@@ -75,6 +75,9 @@ export function CameraMap() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [view, setView] = useState<"map" | "list">("map");
+  const [, setSettings] = useSettings();
+  const setBasemap = (id: Basemap) => setSettings((p) => ({ ...p, basemap: id }));
 
   // Apply filters from settings (state / county / radius)
   const visibleCameras = useMemo(() => {
