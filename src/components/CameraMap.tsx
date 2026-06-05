@@ -506,18 +506,18 @@ export function CameraMap() {
       />
 
       {/* Footer ribbon + keyboard help */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] flex items-center justify-center gap-2 pb-2">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] flex items-center justify-center gap-2 pb-3">
         <button
           onClick={() => setShowHelp((v) => !v)}
           aria-label="Show keyboard shortcuts"
           aria-expanded={showHelp}
-          className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/10 bg-card/35 px-2.5 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur-xl hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-white/10 bg-card/35 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground backdrop-blur-xl transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Keyboard className="h-3 w-3" aria-hidden="true" />
-          ? Shortcuts
+          Shortcuts
         </button>
-        <div className="pointer-events-auto rounded-full border border-white/10 bg-card/35 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur-xl">
-          California · ALERTWest Public API · Not for fire detection
+        <div className="pointer-events-auto rounded-full border border-white/10 bg-card/35 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground backdrop-blur-xl">
+          ALERTWest · Public API
         </div>
       </div>
 
