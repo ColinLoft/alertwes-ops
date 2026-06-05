@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, Circle, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Circle, ScaleControl, LayersControl, useMap } from "react-leaflet";
 import { Link } from "@tanstack/react-router";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCameras, getStatus, parseViewLine, relTime, type Camera } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
+import { CameraList } from "./CameraList";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { AlertTriangle, Flame, Keyboard, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
+import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
-import { useSettings } from "@/lib/settings";
+import { useSettings, type Basemap } from "@/lib/settings";
+import { BASEMAPS } from "@/lib/basemaps";
 import { haversineKm } from "@/lib/geo";
 
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string) {
