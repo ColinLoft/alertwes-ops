@@ -232,7 +232,7 @@ export function CameraMap() {
         </div>
 
         {/* View tabs */}
-        <div className="pointer-events-auto hidden sm:flex">
+        <div className="pointer-events-auto flex">
           <div role="tablist" aria-label="View mode" className="flex items-center gap-1 rounded-lg border border-border bg-card/85 p-1 backdrop-blur-md">
             <ViewTab active={view === "map"} onClick={() => setView("map")} icon={<MapIcon className="h-3.5 w-3.5" />} label="Map" />
             <ViewTab active={view === "list"} onClick={() => setView("list")} icon={<ListIcon className="h-3.5 w-3.5" />} label="List" />
