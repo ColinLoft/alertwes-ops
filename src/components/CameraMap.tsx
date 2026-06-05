@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchCameras, getStatus, parseViewLine, relTime, type Camera } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
 import { CameraList } from "./CameraList";
+import { PlanesLayer } from "./PlanesLayer";
+import { Plane as PlaneIcon } from "lucide-react";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
 import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
@@ -429,6 +431,10 @@ export function CameraMap() {
             pathOptions={{ color: "#f4a261", weight: 3, opacity: 0.9, dashArray: "6 6" }}
           />
         )}
+
+        {settings.showPlanes && (
+          <PlanesLayer refreshSeconds={settings.planesRefreshSeconds} />
+        )}
         </MapContainer>
       )}
 
@@ -452,6 +458,26 @@ export function CameraMap() {
           ))}
         </div>
       )}
+
+      {/* Planes toggle */}
+      {view === "map" && (
+        <button
+          onClick={() => setSettings((p) => ({ ...p, showPlanes: !p.showPlanes }))}
+          aria-pressed={settings.showPlanes}
+          aria-label="Toggle live aircraft overlay"
+          className={`pointer-events-auto absolute right-3 top-[296px] z-[1000] flex items-center gap-1.5 rounded-lg border border-white/10 px-2 py-1 text-[11px] font-medium backdrop-blur-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-4 sm:top-[248px] ${
+            settings.showPlanes
+              ? "bg-sky-500/30 text-sky-100"
+              : "bg-card/40 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <PlaneIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          Planes
+        </button>
+      )}
+
+
+
 
 
       {/* Offline / error banners */}
