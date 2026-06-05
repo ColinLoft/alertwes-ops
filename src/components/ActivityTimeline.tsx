@@ -4,7 +4,7 @@ import { relTime } from "@/lib/alertwest";
 import { useTimelineEvents } from "@/lib/timeline-bus";
 import type { FrameRecord } from "@/hooks/useCameraHistory";
 
-const PLAY_INTERVAL_MS = 1500;
+import { useSettings } from "@/lib/settings";
 
 export function ActivityTimeline({
   frames,
