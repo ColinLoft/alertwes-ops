@@ -364,7 +364,7 @@ export function CameraMap() {
             key={settings.basemap}
             attribution={BASEMAPS[settings.basemap].attribution}
             url={BASEMAPS[settings.basemap].url}
-            subdomains={BASEMAPS[settings.basemap].subdomains as unknown as string | string[] | undefined}
+            subdomains={BASEMAPS[settings.basemap].subdomains ?? "abc"}
             maxZoom={BASEMAPS[settings.basemap].maxZoom}
           />
           {settings.showLabels && BASEMAPS[settings.basemap].labelsUrl && (
@@ -372,7 +372,7 @@ export function CameraMap() {
               key={`${settings.basemap}-labels`}
               url={BASEMAPS[settings.basemap].labelsUrl as string}
               attribution=""
-              subdomains={"abcd"}
+              subdomains="abcd"
               maxZoom={BASEMAPS[settings.basemap].maxZoom}
             />
           )}
