@@ -50,10 +50,11 @@ function useOnlineStatus() {
 
 export function CameraMap() {
   const online = useOnlineStatus();
+  const [settings] = useSettings();
   const { data, isLoading, isFetching, error, refetch, dataUpdatedAt, failureCount } = useQuery({
     queryKey: ["aw-cameras"],
     queryFn: fetchCameras,
-    refetchInterval: 60_000,
+    refetchInterval: Math.max(15, settings.refreshSeconds) * 1000,
     staleTime: 30_000,
     // Exponential backoff retry on failure (per-fetch). React Query also keeps last good data.
     retry: 4,
@@ -66,37 +67,49 @@ export function CameraMap() {
     if (online && error) refetch();
   }, [online, error, refetch]);
 
-
-
   const cameras = useMemo(() => data ?? [], [data]);
   const history = useCameraHistory(cameras, dataUpdatedAt);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  const [filters, setFilters] = useState<Filters>(emptyFilters());
 
-  // Pre-compute statuses
-  const statusMap = useMemo(() => {
-    const m = new Map<string, Status>();
-    for (const c of cameras) m.set(c.site.id, getStatus(c).status);
-    return m;
-  }, [cameras]);
-
-  // Apply filters
+  // Apply filters from settings (state / county / radius)
   const visibleCameras = useMemo(() => {
+    const stateSet = new Set(settings.states.map((s) => s.toLowerCase()));
+    const countySet = new Set(settings.counties.map((s) => s.toLowerCase()));
     return cameras.filter((c) => {
-      if (filters.states.size && !(c.site.state && filters.states.has(c.site.state))) return false;
-      if (filters.counties.size && !(c.site.county && filters.counties.has(c.site.county))) return false;
-      const brand = c.parameters["Brand.Brand"];
-      if (filters.brands.size && !(brand && filters.brands.has(brand))) return false;
-      if (filters.statuses.size) {
-        const s = statusMap.get(c.site.id) ?? "unknown";
-        if (!filters.statuses.has(s)) return false;
+      if (stateSet.size && !(c.site.state && stateSet.has(c.site.state.toLowerCase()))) return false;
+      if (countySet.size && !(c.site.county && countySet.has(c.site.county.toLowerCase()))) return false;
+      if (settings.radius) {
+        const lat = Number(c.site.latitude);
+        const lng = Number(c.site.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+        const d = haversineKm({ lat, lng }, { lat: settings.radius.lat, lng: settings.radius.lng });
+        if (d > settings.radius.km) return false;
       }
       return true;
     });
-  }, [cameras, filters, statusMap]);
+  }, [cameras, settings.states, settings.counties, settings.radius]);
+
+  // Auto-open nearest camera when radius is set
+  useEffect(() => {
+    if (!settings.autoOpenNearest || !settings.radius || selectedId) return;
+    if (visibleCameras.length === 0) return;
+    const center = { lat: settings.radius.lat, lng: settings.radius.lng };
+    let best: { id: string; d: number } | null = null;
+    for (const c of visibleCameras) {
+      const lat = Number(c.site.latitude);
+      const lng = Number(c.site.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const d = haversineKm(center, { lat, lng });
+      if (!best || d < best.d) best = { id: c.site.id, d };
+    }
+    if (best) setSelectedId(best.id);
+    // intentionally only react when radius identity changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.radius, settings.autoOpenNearest, visibleCameras.length]);
+
 
   const selected = useMemo(
     () => cameras.find((c) => c.site.id === selectedId) ?? null,
