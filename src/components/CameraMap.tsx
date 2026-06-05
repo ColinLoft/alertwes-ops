@@ -258,11 +258,18 @@ export function CameraMap() {
           </button>
           <button
             onClick={() => refetch()}
-            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label="Refresh"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </button>
+          <Link
+            to="/settings"
+            aria-label="Open settings"
+            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <SettingsIcon className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </header>
 
