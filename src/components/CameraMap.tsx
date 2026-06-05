@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, Circle, ScaleControl, LayersControl, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Circle, ScaleControl, useMap } from "react-leaflet";
 import { Link } from "@tanstack/react-router";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
