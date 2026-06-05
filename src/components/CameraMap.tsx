@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Circle, useMap } from "react-leaflet";
+import { Link } from "@tanstack/react-router";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
-import { fetchCameras, getStatus, parseViewLine, relTime, type Camera, type Status } from "@/lib/alertwest";
+import { fetchCameras, getStatus, parseViewLine, relTime, type Camera } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
-import { FilterBar, emptyFilters, type Filters } from "./FilterBar";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { AlertTriangle, Flame, Keyboard, RefreshCw, Search, WifiOff, X } from "lucide-react";
+import { AlertTriangle, Flame, Keyboard, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
+import { useSettings } from "@/lib/settings";
+import { haversineKm } from "@/lib/geo";
 
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string) {
   const safe = label.replace(/"/g, "&quot;");
@@ -48,10 +50,11 @@ function useOnlineStatus() {
 
 export function CameraMap() {
   const online = useOnlineStatus();
+  const [settings] = useSettings();
   const { data, isLoading, isFetching, error, refetch, dataUpdatedAt, failureCount } = useQuery({
     queryKey: ["aw-cameras"],
     queryFn: fetchCameras,
-    refetchInterval: 60_000,
+    refetchInterval: Math.max(15, settings.refreshSeconds) * 1000,
     staleTime: 30_000,
     // Exponential backoff retry on failure (per-fetch). React Query also keeps last good data.
     retry: 4,
@@ -64,37 +67,49 @@ export function CameraMap() {
     if (online && error) refetch();
   }, [online, error, refetch]);
 
-
-
   const cameras = useMemo(() => data ?? [], [data]);
   const history = useCameraHistory(cameras, dataUpdatedAt);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
-  const [filters, setFilters] = useState<Filters>(emptyFilters());
 
-  // Pre-compute statuses
-  const statusMap = useMemo(() => {
-    const m = new Map<string, Status>();
-    for (const c of cameras) m.set(c.site.id, getStatus(c).status);
-    return m;
-  }, [cameras]);
-
-  // Apply filters
+  // Apply filters from settings (state / county / radius)
   const visibleCameras = useMemo(() => {
+    const stateSet = new Set(settings.states.map((s) => s.toLowerCase()));
+    const countySet = new Set(settings.counties.map((s) => s.toLowerCase()));
     return cameras.filter((c) => {
-      if (filters.states.size && !(c.site.state && filters.states.has(c.site.state))) return false;
-      if (filters.counties.size && !(c.site.county && filters.counties.has(c.site.county))) return false;
-      const brand = c.parameters["Brand.Brand"];
-      if (filters.brands.size && !(brand && filters.brands.has(brand))) return false;
-      if (filters.statuses.size) {
-        const s = statusMap.get(c.site.id) ?? "unknown";
-        if (!filters.statuses.has(s)) return false;
+      if (stateSet.size && !(c.site.state && stateSet.has(c.site.state.toLowerCase()))) return false;
+      if (countySet.size && !(c.site.county && countySet.has(c.site.county.toLowerCase()))) return false;
+      if (settings.radius) {
+        const lat = Number(c.site.latitude);
+        const lng = Number(c.site.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+        const d = haversineKm({ lat, lng }, { lat: settings.radius.lat, lng: settings.radius.lng });
+        if (d > settings.radius.km) return false;
       }
       return true;
     });
-  }, [cameras, filters, statusMap]);
+  }, [cameras, settings.states, settings.counties, settings.radius]);
+
+  // Auto-open nearest camera when radius is set
+  useEffect(() => {
+    if (!settings.autoOpenNearest || !settings.radius || selectedId) return;
+    if (visibleCameras.length === 0) return;
+    const center = { lat: settings.radius.lat, lng: settings.radius.lng };
+    let best: { id: string; d: number } | null = null;
+    for (const c of visibleCameras) {
+      const lat = Number(c.site.latitude);
+      const lng = Number(c.site.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const d = haversineKm(center, { lat, lng });
+      if (!best || d < best.d) best = { id: c.site.id, d };
+    }
+    if (best) setSelectedId(best.id);
+    // intentionally only react when radius identity changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.radius, settings.autoOpenNearest, visibleCameras.length]);
+
 
   const selected = useMemo(
     () => cameras.find((c) => c.site.id === selectedId) ?? null,
@@ -208,13 +223,9 @@ export function CameraMap() {
             </div>
           </div>
 
-          <FilterBar
-            cameras={cameras}
-            filters={filters}
-            onChange={setFilters}
-            cameraStatuses={statusMap}
-          />
+          <FilterSummary settings={settings} count={visibleCameras.length} total={cameras.length} />
         </div>
+
 
         <div className="pointer-events-auto flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md sm:flex">
@@ -247,11 +258,18 @@ export function CameraMap() {
           </button>
           <button
             onClick={() => refetch()}
-            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label="Refresh"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
           </button>
+          <Link
+            to="/settings"
+            aria-label="Open settings"
+            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <SettingsIcon className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </header>
 
@@ -314,8 +332,8 @@ export function CameraMap() {
 
       {/* Map */}
       <MapContainer
-        center={[39.5, -120.5]}
-        zoom={6}
+        center={settings.radius ? [settings.radius.lat, settings.radius.lng] : [39.5, -120.5]}
+        zoom={settings.defaultZoom}
         scrollWheelZoom
         className="h-full w-full"
         worldCopyJump
@@ -325,6 +343,20 @@ export function CameraMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FlyTo target={flyTarget} />
+
+        {settings.radius && (
+          <Circle
+            center={[settings.radius.lat, settings.radius.lng]}
+            radius={settings.radius.km * 1000}
+            pathOptions={{
+              color: "#f4a261",
+              weight: 1.5,
+              opacity: 0.7,
+              fillOpacity: 0.05,
+              dashArray: "4 4",
+            }}
+          />
+        )}
 
         {visibleCameras.map((c) => {
           const lat = Number(c.site.latitude);
@@ -337,7 +369,7 @@ export function CameraMap() {
             <Marker
               key={c.site.id}
               position={[lat, lng]}
-              icon={makeIcon(s.color, active, s.status === "online", label)}
+              icon={makeIcon(s.color, active, settings.showMarkerPulse && s.status === "online", label)}
               keyboard
               alt={label}
               title={label}
@@ -355,7 +387,7 @@ export function CameraMap() {
           );
         })}
 
-        {viewLine && (
+        {settings.showViewLines && viewLine && (
           <Polyline
             positions={viewLine}
             pathOptions={{ color: "#f4a261", weight: 3, opacity: 0.9, dashArray: "6 6" }}
@@ -486,3 +518,37 @@ function Legend({ color }: { color: string }) {
     />
   );
 }
+
+function FilterSummary({
+  settings,
+  count,
+  total,
+}: {
+  settings: ReturnType<typeof useSettings>[0];
+  count: number;
+  total: number;
+}) {
+  const parts: string[] = [];
+  if (settings.states.length) parts.push(settings.states.join(", "));
+  if (settings.counties.length)
+    parts.push(`${settings.counties.length} ${settings.counties.length === 1 ? "county" : "counties"}`);
+  if (settings.radius) parts.push(`${settings.radius.km} km of address`);
+  const isFiltered = parts.length > 0;
+
+  return (
+    <Link
+      to="/settings"
+      className="flex items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur-md transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      aria-label="Edit camera filters in settings"
+    >
+      <SettingsIcon className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+      <span className="font-semibold text-foreground tabular-nums">{count}</span>
+      <span>/ {total}</span>
+      <span className="hidden h-3 w-px bg-border sm:inline-block" />
+      <span className="hidden sm:inline">
+        {isFiltered ? parts.join(" · ") : "All cameras"}
+      </span>
+    </Link>
+  );
+}
+

@@ -4,7 +4,7 @@ import { relTime } from "@/lib/alertwest";
 import { useTimelineEvents } from "@/lib/timeline-bus";
 import type { FrameRecord } from "@/hooks/useCameraHistory";
 
-const PLAY_INTERVAL_MS = 1500;
+import { useSettings } from "@/lib/settings";
 
 export function ActivityTimeline({
   frames,
@@ -19,6 +19,7 @@ export function ActivityTimeline({
   onReturnLive: () => void;
   isLiveActive: boolean;
 }) {
+  const [settings] = useSettings();
   const [playing, setPlaying] = useState(false);
   const idxRef = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
@@ -41,11 +42,11 @@ export function ActivityTimeline({
       idxRef.current = (idxRef.current + 1) % ordered.length;
       onSelect(ordered[idxRef.current]);
     };
-    const id = window.setInterval(tick, PLAY_INTERVAL_MS);
+    const id = window.setInterval(tick, Math.max(250, settings.playIntervalMs));
     return () => window.clearInterval(id);
     // We intentionally don't depend on activeUrl to avoid resetting interval each tick
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, frames]);
+  }, [playing, frames, settings.playIntervalMs]);
 
   // Respond to global keyboard shortcuts dispatched by CameraMap
   const handleBus = useCallback(
