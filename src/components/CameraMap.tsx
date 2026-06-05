@@ -216,7 +216,7 @@ export function CameraMap() {
       {/* Header */}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-3 p-3 sm:p-4">
         <div className="pointer-events-auto flex flex-col items-start gap-2">
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-2 backdrop-blur-md">
+          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-card/40 px-3 py-2 backdrop-blur-xl">
             <Flame className="h-5 w-5 text-primary" />
             <div className="leading-tight">
               <div className="text-sm font-bold tracking-wide">
@@ -233,7 +233,7 @@ export function CameraMap() {
 
         {/* View tabs */}
         <div className="pointer-events-auto flex">
-          <div role="tablist" aria-label="View mode" className="flex items-center gap-1 rounded-lg border border-border bg-card/85 p-1 backdrop-blur-md">
+          <div role="tablist" aria-label="View mode" className="flex items-center gap-1 rounded-lg border border-white/10 bg-card/40 p-1 backdrop-blur-xl">
             <ViewTab active={view === "map"} onClick={() => setView("map")} icon={<MapIcon className="h-3.5 w-3.5" />} label="Map" />
             <ViewTab active={view === "list"} onClick={() => setView("list")} icon={<ListIcon className="h-3.5 w-3.5" />} label="List" />
           </div>
@@ -242,7 +242,7 @@ export function CameraMap() {
 
 
         <div className="pointer-events-auto flex items-center gap-2">
-          <div className="hidden items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-2 text-xs text-muted-foreground backdrop-blur-md sm:flex">
+          <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-card/40 px-3 py-2 text-xs text-muted-foreground backdrop-blur-xl sm:flex">
             <span className="font-medium text-foreground" aria-label={`${visibleCameras.length} of ${cameras.length} cameras visible`}>
               {visibleCameras.length}
             </span>
@@ -266,13 +266,13 @@ export function CameraMap() {
             aria-label="Search cameras"
             aria-expanded={showSearch}
             aria-controls="aw-search-popover"
-            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="rounded-lg border border-white/10 bg-card/40 p-2 text-foreground backdrop-blur-xl transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
           </button>
           <button
             onClick={() => refetch()}
-            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="rounded-lg border border-white/10 bg-card/40 p-2 text-foreground backdrop-blur-xl transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label="Refresh"
           >
             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
@@ -280,7 +280,7 @@ export function CameraMap() {
           <Link
             to="/settings"
             aria-label="Open settings"
-            className="rounded-lg border border-border bg-card/85 p-2 text-foreground backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="rounded-lg border border-white/10 bg-card/40 p-2 text-foreground backdrop-blur-xl transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <SettingsIcon className="h-4 w-4" aria-hidden="true" />
           </Link>
@@ -289,7 +289,7 @@ export function CameraMap() {
 
       {/* Search dropdown */}
       {showSearch && (
-        <div id="aw-search-popover" role="dialog" aria-label="Search cameras" className="absolute right-3 top-16 z-[1000] w-[min(360px,calc(100vw-1.5rem))] rounded-lg border border-border bg-card/95 p-2 backdrop-blur-md sm:right-4">
+        <div id="aw-search-popover" role="dialog" aria-label="Search cameras" className="absolute right-3 top-16 z-[1000] w-[min(360px,calc(100vw-1.5rem))] rounded-lg border border-white/10 bg-card/70 p-2 backdrop-blur-xl sm:right-4">
           <div className="flex items-center gap-2 border-b border-border px-2 pb-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <input
@@ -364,7 +364,7 @@ export function CameraMap() {
             key={settings.basemap}
             attribution={BASEMAPS[settings.basemap].attribution}
             url={BASEMAPS[settings.basemap].url}
-            subdomains={BASEMAPS[settings.basemap].subdomains as unknown as string | string[] | undefined}
+            subdomains={BASEMAPS[settings.basemap].subdomains ?? "abc"}
             maxZoom={BASEMAPS[settings.basemap].maxZoom}
           />
           {settings.showLabels && BASEMAPS[settings.basemap].labelsUrl && (
@@ -372,7 +372,7 @@ export function CameraMap() {
               key={`${settings.basemap}-labels`}
               url={BASEMAPS[settings.basemap].labelsUrl as string}
               attribution=""
-              subdomains={"abcd"}
+              subdomains="abcd"
               maxZoom={BASEMAPS[settings.basemap].maxZoom}
             />
           )}
@@ -434,7 +434,7 @@ export function CameraMap() {
 
       {/* Basemap switcher (map view only) */}
       {view === "map" && (
-        <div className="pointer-events-auto absolute right-3 top-[120px] z-[1000] flex flex-col gap-1 rounded-lg border border-border bg-card/85 p-1 backdrop-blur-md sm:right-4 sm:top-[72px]" role="radiogroup" aria-label="Basemap style">
+        <div className="pointer-events-auto absolute right-3 top-[120px] z-[1000] flex flex-col gap-1 rounded-lg border border-white/10 bg-card/40 p-1 backdrop-blur-xl sm:right-4 sm:top-[72px]" role="radiogroup" aria-label="Basemap style">
           {(Object.values(BASEMAPS)).map((b) => (
             <button
               key={b.id}
@@ -461,7 +461,7 @@ export function CameraMap() {
         className="pointer-events-none absolute inset-x-0 top-[88px] z-[1000] flex flex-col items-center gap-2 px-3 sm:top-20"
       >
         {!online && (
-          <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/20 px-3 py-2 text-xs font-medium text-amber-100 backdrop-blur-md">
+          <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/20 px-3 py-2 text-xs font-medium text-amber-100 backdrop-blur-xl">
             <WifiOff className="h-4 w-4" aria-hidden="true" />
             <span>You're offline. Showing the last successful snapshot.</span>
             {dataUpdatedAt > 0 && (
@@ -470,7 +470,7 @@ export function CameraMap() {
           </div>
         )}
         {error && online && (
-          <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/20 px-3 py-2 text-xs font-medium text-destructive-foreground backdrop-blur-md">
+          <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/20 px-3 py-2 text-xs font-medium text-destructive-foreground backdrop-blur-xl">
             <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             <span>
               Couldn't reach the ALERTWest API
@@ -492,7 +492,7 @@ export function CameraMap() {
       {isLoading && (
         <div
           role="status"
-          className="absolute left-1/2 top-1/2 z-[1000] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card/90 px-4 py-3 text-sm text-muted-foreground backdrop-blur-md"
+          className="absolute left-1/2 top-1/2 z-[1000] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card/90 px-4 py-3 text-sm text-muted-foreground backdrop-blur-xl"
         >
           Loading camera network…
         </div>
@@ -506,18 +506,18 @@ export function CameraMap() {
       />
 
       {/* Footer ribbon + keyboard help */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] flex items-center justify-center gap-2 pb-2">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] flex items-center justify-center gap-2 pb-3">
         <button
           onClick={() => setShowHelp((v) => !v)}
           aria-label="Show keyboard shortcuts"
           aria-expanded={showHelp}
-          className="pointer-events-auto flex items-center gap-1 rounded-full border border-border bg-card/80 px-2.5 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur-md hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-white/10 bg-card/35 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground backdrop-blur-xl transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Keyboard className="h-3 w-3" aria-hidden="true" />
-          ? Shortcuts
+          Shortcuts
         </button>
-        <div className="pointer-events-auto rounded-full border border-border bg-card/80 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground backdrop-blur-md">
-          California · ALERTWest Public API · Not for fire detection
+        <div className="pointer-events-auto rounded-full border border-white/10 bg-card/35 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground backdrop-blur-xl">
+          ALERTWest · Public API
         </div>
       </div>
 
@@ -626,7 +626,7 @@ function FilterSummary({
   return (
     <Link
       to="/settings"
-      className="flex items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur-md transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="flex items-center gap-2 rounded-lg border border-white/10 bg-card/40 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur-xl transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       aria-label="Edit camera filters in settings"
     >
       <SettingsIcon className="h-3.5 w-3.5 text-primary" aria-hidden="true" />

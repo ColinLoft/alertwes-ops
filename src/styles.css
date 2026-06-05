@@ -156,17 +156,23 @@
   background: oklch(0.14 0.02 250);
   font-family: inherit;
 }
+/* Subtle desaturation only — keeps satellite/streets readable */
 .leaflet-tile-pane {
-  filter: brightness(0.7) saturate(0.85) hue-rotate(-10deg);
+  filter: saturate(0.92) contrast(1.02);
 }
 .leaflet-control-attribution,
 .leaflet-control-zoom a {
-  background: oklch(0.22 0.02 250 / 0.9) !important;
+  background: oklch(0.18 0.02 250 / 0.55) !important;
   color: var(--color-foreground) !important;
-  border-color: var(--color-border) !important;
+  border-color: oklch(1 0 0 / 0.08) !important;
+  backdrop-filter: blur(8px);
 }
 .leaflet-control-zoom a {
-  border-radius: 6px !important;
+  border-radius: 8px !important;
+}
+.leaflet-bar {
+  border: none !important;
+  box-shadow: 0 4px 16px oklch(0 0 0 / 0.3) !important;
 }
 .aw-marker {
   --mc: #f4a261;
