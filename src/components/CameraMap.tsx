@@ -465,12 +465,11 @@ export function CameraMap() {
           onClick={() => setSettings((p) => ({ ...p, showPlanes: !p.showPlanes }))}
           aria-pressed={settings.showPlanes}
           aria-label="Toggle live aircraft overlay"
-          className={`pointer-events-auto absolute right-3 z-[1000] flex items-center gap-1.5 rounded-lg border border-white/10 px-2 py-1 text-[11px] font-medium backdrop-blur-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-4 ${
+          className={`pointer-events-auto absolute right-3 top-[296px] z-[1000] flex items-center gap-1.5 rounded-lg border border-white/10 px-2 py-1 text-[11px] font-medium backdrop-blur-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-4 sm:top-[248px] ${
             settings.showPlanes
               ? "bg-sky-500/30 text-sky-100"
               : "bg-card/40 text-muted-foreground hover:text-foreground"
           }`}
-          style={{ top: "calc(120px + 200px)" }}
         >
           <PlaneIcon className="h-3.5 w-3.5" aria-hidden="true" />
           Planes
