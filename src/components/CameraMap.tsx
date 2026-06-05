@@ -332,8 +332,8 @@ export function CameraMap() {
 
       {/* Map */}
       <MapContainer
-        center={[39.5, -120.5]}
-        zoom={6}
+        center={settings.radius ? [settings.radius.lat, settings.radius.lng] : [39.5, -120.5]}
+        zoom={settings.defaultZoom}
         scrollWheelZoom
         className="h-full w-full"
         worldCopyJump
@@ -343,6 +343,20 @@ export function CameraMap() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FlyTo target={flyTarget} />
+
+        {settings.radius && (
+          <Circle
+            center={[settings.radius.lat, settings.radius.lng]}
+            radius={settings.radius.km * 1000}
+            pathOptions={{
+              color: "#f4a261",
+              weight: 1.5,
+              opacity: 0.7,
+              fillOpacity: 0.05,
+              dashArray: "4 4",
+            }}
+          />
+        )}
 
         {visibleCameras.map((c) => {
           const lat = Number(c.site.latitude);
@@ -355,7 +369,7 @@ export function CameraMap() {
             <Marker
               key={c.site.id}
               position={[lat, lng]}
-              icon={makeIcon(s.color, active, s.status === "online", label)}
+              icon={makeIcon(s.color, active, settings.showMarkerPulse && s.status === "online", label)}
               keyboard
               alt={label}
               title={label}
@@ -373,7 +387,7 @@ export function CameraMap() {
           );
         })}
 
-        {viewLine && (
+        {settings.showViewLines && viewLine && (
           <Polyline
             positions={viewLine}
             pathOptions={{ color: "#f4a261", weight: 3, opacity: 0.9, dashArray: "6 6" }}
