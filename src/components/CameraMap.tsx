@@ -518,3 +518,37 @@ function Legend({ color }: { color: string }) {
     />
   );
 }
+
+function FilterSummary({
+  settings,
+  count,
+  total,
+}: {
+  settings: ReturnType<typeof useSettings>[0];
+  count: number;
+  total: number;
+}) {
+  const parts: string[] = [];
+  if (settings.states.length) parts.push(settings.states.join(", "));
+  if (settings.counties.length)
+    parts.push(`${settings.counties.length} ${settings.counties.length === 1 ? "county" : "counties"}`);
+  if (settings.radius) parts.push(`${settings.radius.km} km of address`);
+  const isFiltered = parts.length > 0;
+
+  return (
+    <Link
+      to="/settings"
+      className="flex items-center gap-2 rounded-lg border border-border bg-card/85 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur-md transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      aria-label="Edit camera filters in settings"
+    >
+      <SettingsIcon className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+      <span className="font-semibold text-foreground tabular-nums">{count}</span>
+      <span>/ {total}</span>
+      <span className="hidden h-3 w-px bg-border sm:inline-block" />
+      <span className="hidden sm:inline">
+        {isFiltered ? parts.join(" · ") : "All cameras"}
+      </span>
+    </Link>
+  );
+}
+
