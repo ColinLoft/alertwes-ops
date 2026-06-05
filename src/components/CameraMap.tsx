@@ -578,6 +578,35 @@ function Legend({ color }: { color: string }) {
   );
 }
 
+function ViewTab({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+
 function FilterSummary({
   settings,
   count,
