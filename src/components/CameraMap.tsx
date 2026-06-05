@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Circle, useMap } from "react-leaflet";
+import { Link } from "@tanstack/react-router";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
-import { fetchCameras, getStatus, parseViewLine, relTime, type Camera, type Status } from "@/lib/alertwest";
+import { fetchCameras, getStatus, parseViewLine, relTime, type Camera } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
-import { FilterBar, emptyFilters, type Filters } from "./FilterBar";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { AlertTriangle, Flame, Keyboard, RefreshCw, Search, WifiOff, X } from "lucide-react";
+import { AlertTriangle, Flame, Keyboard, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
+import { useSettings } from "@/lib/settings";
+import { haversineKm } from "@/lib/geo";
 
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string) {
   const safe = label.replace(/"/g, "&quot;");
