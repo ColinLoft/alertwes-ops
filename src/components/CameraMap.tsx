@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchCameras, getStatus, parseViewLine, relTime, type Camera } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
 import { CameraList } from "./CameraList";
+import { PlanesLayer } from "./PlanesLayer";
+import { Plane as PlaneIcon } from "lucide-react";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
 import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
@@ -428,6 +430,10 @@ export function CameraMap() {
             positions={viewLine}
             pathOptions={{ color: "#f4a261", weight: 3, opacity: 0.9, dashArray: "6 6" }}
           />
+        )}
+
+        {settings.showPlanes && (
+          <PlanesLayer refreshSeconds={settings.planesRefreshSeconds} />
         )}
         </MapContainer>
       )}

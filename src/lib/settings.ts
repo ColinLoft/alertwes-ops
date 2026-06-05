@@ -19,6 +19,10 @@ export interface Settings {
   defaultZoom: number;
   basemap: Basemap;
   showLabels: boolean;
+  showPlanes: boolean;
+  planesRefreshSeconds: number;
+
+
 
   // Camera filters
   states: string[];
@@ -35,6 +39,8 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultZoom: 6,
   basemap: "voyager",
   showLabels: true,
+  showPlanes: true,
+  planesRefreshSeconds: 20,
   states: ["CA"],
   counties: [],
   radius: null,

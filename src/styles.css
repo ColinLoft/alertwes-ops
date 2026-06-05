@@ -207,3 +207,11 @@
   100% { transform: scale(1.8); opacity: 0; }
 }
 
+.aw-plane {
+  color: var(--pc, #7dd3fc);
+  filter: drop-shadow(0 0 4px color-mix(in oklab, var(--pc) 80%, transparent));
+  transform-origin: center;
+  transition: transform 0.4s linear;
+}
+.aw-plane svg { display: block; }
+
