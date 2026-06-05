@@ -429,7 +429,30 @@ export function CameraMap() {
             pathOptions={{ color: "#f4a261", weight: 3, opacity: 0.9, dashArray: "6 6" }}
           />
         )}
-      </MapContainer>
+        </MapContainer>
+      )}
+
+      {/* Basemap switcher (map view only) */}
+      {view === "map" && (
+        <div className="pointer-events-auto absolute right-3 top-[120px] z-[1000] flex flex-col gap-1 rounded-lg border border-border bg-card/85 p-1 backdrop-blur-md sm:right-4 sm:top-[72px]" role="radiogroup" aria-label="Basemap style">
+          {(Object.values(BASEMAPS)).map((b) => (
+            <button
+              key={b.id}
+              role="radio"
+              aria-checked={settings.basemap === b.id}
+              onClick={() => setBasemap(b.id)}
+              className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                settings.basemap === b.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+      )}
+
 
       {/* Offline / error banners */}
       <div
