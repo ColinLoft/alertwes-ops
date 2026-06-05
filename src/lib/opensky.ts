@@ -26,7 +26,7 @@ export interface Bbox {
 }
 
 export async function fetchPlanes(bbox: Bbox, signal?: AbortSignal): Promise<Plane[]> {
-  const url = new URL("https://opensky-network.org/api/states/all");
+  const url = new URL("/api/planes", typeof window !== "undefined" ? window.location.origin : "http://localhost");
   url.searchParams.set("lamin", bbox.lamin.toFixed(4));
   url.searchParams.set("lomin", bbox.lomin.toFixed(4));
   url.searchParams.set("lamax", bbox.lamax.toFixed(4));
