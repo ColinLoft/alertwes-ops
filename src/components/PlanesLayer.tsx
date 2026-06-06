@@ -4,6 +4,7 @@ import L from "leaflet";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPlanes, mToFt, msToKt, type Bbox, type Plane } from "@/lib/opensky";
 import { haversineMi, bearingDeg } from "@/lib/geo";
+import { publishPlanes } from "@/lib/planes-bus";
 import type { RadiusFilter } from "@/lib/settings";
 
 function planeIcon(headingDeg: number, onGround: boolean) {
@@ -92,6 +93,12 @@ export function PlanesLayer({
   const planes = radius
     ? all.filter((p) => haversineMi({ lat: p.lat, lng: p.lng }, { lat: radius.lat, lng: radius.lng }) <= radius.km)
     : all;
+
+  // Publish currently-rendered planes so the search box (and other UI) can use them.
+  useEffect(() => {
+    publishPlanes(planes);
+  }, [planes]);
+
 
   return (
     <>

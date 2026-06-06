@@ -1,38 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, Circle, ScaleControl, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, Circle, ScaleControl, useMap } from "react-leaflet";
 import { Link } from "@tanstack/react-router";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCameras, getStatus, parseViewLine, relTime, type Camera } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
 import { CameraList } from "./CameraList";
 import { PlanesLayer } from "./PlanesLayer";
+import { CameraMarkersLayer } from "./CameraMarkersLayer";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
+import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, Plane as PlaneIcon, RefreshCw, Search, Settings as SettingsIcon, Video as VideoIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
 import { useSettings, useSettingsUrlSync } from "@/lib/settings";
 import { BASEMAPS } from "@/lib/basemaps";
-import { haversineMi, bearingDeg, destinationPointMi } from "@/lib/geo";
-
-function makeIcon(color: string, active: boolean, pulse: boolean, label: string, headingDeg: number | null) {
-  const safe = label.replace(/"/g, "&quot;");
-  const rot = headingDeg ?? 0;
-  // Camera arrow: chevron/arrowhead pointing "up" (north). Rotate via inline transform.
-  const svg = `
-    <svg viewBox="0 0 24 24" width="22" height="22" style="transform: rotate(${rot}deg); transform-origin: 50% 50%;" aria-hidden="true">
-      <path fill="currentColor" stroke="rgba(0,0,0,0.55)" stroke-width="0.8" stroke-linejoin="round"
-        d="M12 2.2l8.4 16.6c.35.7-.4 1.46-1.12 1.13L12 16.6 4.72 19.93c-.73.33-1.47-.43-1.12-1.13L12 2.2z"/>
-      <circle cx="12" cy="14.5" r="2.3" fill="rgba(0,0,0,0.45)"/>
-    </svg>`;
-  return L.divIcon({
-    className: "",
-    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}" role="button" tabindex="0" aria-label="${safe}">${svg}</div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-  });
-}
+import { bearingDeg, destinationPointMi, haversineMi } from "@/lib/geo";
+import { subscribePlanes } from "@/lib/planes-bus";
+import type { Plane } from "@/lib/opensky";
 
 function FlyTo({ target }: { target: [number, number] | null }) {
   const map = useMap();
@@ -86,6 +70,11 @@ export function CameraMap() {
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [view, setView] = useState<"map" | "list">("map");
+  const [livePlanes, setLivePlanes] = useState<Plane[]>([]);
+  const [planeFlyTarget, setPlaneFlyTarget] = useState<[number, number] | null>(null);
+
+  // Receive the latest plane snapshot from PlanesLayer so search can find them.
+  useEffect(() => subscribePlanes(setLivePlanes), []);
 
   // Apply filters from settings (state / county / radius)
   const visibleCameras = useMemo(() => {
@@ -150,10 +139,14 @@ export function CameraMap() {
     return [parsed[0], [far.lat, far.lng]] as [number, number][];
   }, [selected]);
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return [] as Camera[];
+  type SearchHit =
+    | { kind: "camera"; camera: Camera }
+    | { kind: "plane"; plane: Plane };
+
+  const filtered = useMemo<SearchHit[]>(() => {
+    if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return visibleCameras
+    const cams: SearchHit[] = visibleCameras
       .filter(
         (c) =>
           c.name.toLowerCase().includes(q) ||
@@ -161,8 +154,21 @@ export function CameraMap() {
           (c.site.county ?? "").toLowerCase().includes(q) ||
           (c.site.state ?? "").toLowerCase().includes(q),
       )
-      .slice(0, 30);
-  }, [visibleCameras, query]);
+      .slice(0, 20)
+      .map((c) => ({ kind: "camera", camera: c }));
+
+    const planes: SearchHit[] = livePlanes
+      .filter((p) => {
+        const cs = (p.callsign || "").toLowerCase();
+        const icao = p.icao24.toLowerCase();
+        const origin = (p.originCountry || "").toLowerCase();
+        return cs.includes(q) || icao.includes(q) || origin.includes(q);
+      })
+      .slice(0, 15)
+      .map((p) => ({ kind: "plane", plane: p }));
+
+    return [...cams, ...planes].slice(0, 30);
+  }, [visibleCameras, livePlanes, query]);
 
   const [showHelp, setShowHelp] = useState(false);
 
@@ -332,25 +338,50 @@ export function CameraMap() {
                 No matches
               </div>
             )}
-            {filtered.map((c) => {
-              const s = getStatus(c);
+            {filtered.map((hit) => {
+              if (hit.kind === "camera") {
+                const c = hit.camera;
+                const s = getStatus(c);
+                return (
+                  <button
+                    key={`cam-${c.site.id}`}
+                    onClick={() => {
+                      setSelectedId(c.site.id);
+                      setShowSearch(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-white/5"
+                  >
+                    <VideoIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: s.color }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{c.name}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {[c.site.county, c.site.state].filter(Boolean).join(", ") || "—"} · Camera
+                      </span>
+                    </span>
+                  </button>
+                );
+              }
+              const p = hit.plane;
               return (
                 <button
-                  key={c.site.id}
+                  key={`plane-${p.icao24}`}
                   onClick={() => {
-                    setSelectedId(c.site.id);
+                    setPlaneFlyTarget([p.lat, p.lng]);
                     setShowSearch(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-white/5"
                 >
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ background: s.color, boxShadow: `0 0 6px ${s.color}` }}
-                  />
+                  <PlaneIcon className="h-3.5 w-3.5 shrink-0 text-amber-300" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{c.name}</span>
+                    <span className="block truncate font-medium">
+                      {p.callsign || p.icao24.toUpperCase()}
+                    </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {[c.site.county, c.site.state].filter(Boolean).join(", ") || "—"}
+                      {p.originCountry || "Unknown"} · Aircraft{p.onGround ? " · on ground" : ""}
                     </span>
                   </span>
                 </button>
@@ -406,6 +437,7 @@ export function CameraMap() {
           )}
           <ScaleControl position="bottomleft" imperial metric />
           <FlyTo target={flyTarget} />
+          <FlyTo target={planeFlyTarget} />
 
 
         {settings.radius && (
@@ -422,40 +454,12 @@ export function CameraMap() {
           />
         )}
 
-        {visibleCameras.map((c) => {
-          const lat = Number(c.site.latitude);
-          const lng = Number(c.site.longitude);
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-          const active = selectedId === c.site.id;
-          const s = getStatus(c);
-          const label = `${c.name}${c.site.county || c.site.state ? ` — ${[c.site.county, c.site.state].filter(Boolean).join(", ")}` : ""} (${s.label})`;
-          // Compute heading from the camera's view line (start → end), if any.
-          const vl = parseViewLine(c.view.line);
-          const heading =
-            vl && vl.length >= 2
-              ? bearingDeg({ lat: vl[0][0], lng: vl[0][1] }, { lat: vl[vl.length - 1][0], lng: vl[vl.length - 1][1] })
-              : null;
-          return (
-            <Marker
-              key={c.site.id}
-              position={[lat, lng]}
-              icon={makeIcon(s.color, active, settings.showMarkerPulse && s.status === "online", label, heading)}
-              keyboard
-              alt={label}
-              title={label}
-              eventHandlers={{
-                click: () => setSelectedId(c.site.id),
-                keydown: (ev) => {
-                  const oe = (ev as unknown as { originalEvent: KeyboardEvent }).originalEvent;
-                  if (oe && (oe.key === "Enter" || oe.key === " ")) {
-                    oe.preventDefault();
-                    setSelectedId(c.site.id);
-                  }
-                },
-              }}
-            />
-          );
-        })}
+        <CameraMarkersLayer
+          cameras={visibleCameras}
+          selectedId={selectedId}
+          onSelect={(id) => setSelectedId(id)}
+          showPulse={settings.showMarkerPulse}
+        />
 
         {settings.showViewLines && viewLine && (
           <Polyline

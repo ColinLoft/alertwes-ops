@@ -222,7 +222,7 @@ function SettingsPage() {
           />
         </Section>
 
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-card/30 p-4 backdrop-blur-xl">
           <div>
             <div className="text-sm font-medium">Reset all settings</div>
             <div className="text-xs text-muted-foreground">Restore defaults (CA, 60s refresh, view lines on).</div>
@@ -251,12 +251,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <div className="border-b border-border px-4 py-3">
+    <section className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-xl">
+      <div className="border-b border-white/5 px-4 py-3">
         <h2 className="text-sm font-semibold">{title}</h2>
         {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
       </div>
-      <div className="divide-y divide-border">{children}</div>
+      <div className="divide-y divide-white/5">{children}</div>
     </section>
   );
 }
