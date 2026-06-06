@@ -410,11 +410,17 @@ export function CameraMap() {
           const active = selectedId === c.site.id;
           const s = getStatus(c);
           const label = `${c.name}${c.site.county || c.site.state ? ` — ${[c.site.county, c.site.state].filter(Boolean).join(", ")}` : ""} (${s.label})`;
+          // Compute heading from the camera's view line (start → end), if any.
+          const vl = parseViewLine(c.view.line);
+          const heading =
+            vl && vl.length >= 2
+              ? bearingDeg({ lat: vl[0][0], lng: vl[0][1] }, { lat: vl[vl.length - 1][0], lng: vl[vl.length - 1][1] })
+              : null;
           return (
             <Marker
               key={c.site.id}
               position={[lat, lng]}
-              icon={makeIcon(s.color, active, settings.showMarkerPulse && s.status === "online", label)}
+              icon={makeIcon(s.color, active, settings.showMarkerPulse && s.status === "online", label, heading)}
               keyboard
               alt={label}
               title={label}
@@ -440,7 +446,7 @@ export function CameraMap() {
         )}
 
         {settings.showPlanes && (
-          <PlanesLayer refreshSeconds={settings.planesRefreshSeconds} />
+          <PlanesLayer refreshSeconds={settings.planesRefreshSeconds} radius={settings.planesRadius} />
         )}
         </MapContainer>
       )}
