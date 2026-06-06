@@ -477,6 +477,7 @@ export function CameraMap() {
           <Circle
             center={[settings.radius.lat, settings.radius.lng]}
             radius={settings.radius.km * 1609.344}
+            interactive={false}
             pathOptions={{
               color: "#f4a261",
               weight: 1.5,
@@ -497,6 +498,7 @@ export function CameraMap() {
         {settings.showViewLines && viewLine && (
           <Polyline
             positions={viewLine}
+            interactive={false}
             pathOptions={{ color: "#f4a261", weight: 3, opacity: 0.9, dashArray: "6 6" }}
           />
         )}
