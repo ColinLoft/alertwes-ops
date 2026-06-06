@@ -7,6 +7,8 @@ import { haversineMi, bearingDeg } from "@/lib/geo";
 import { publishPlanes } from "@/lib/planes-bus";
 import type { RadiusFilter } from "@/lib/settings";
 
+const PLANE_HIT = 44;
+
 function planeIcon(headingDeg: number, onGround: boolean) {
   const color = onGround ? "#fde68a" : "#facc15";
   const svg = `
@@ -16,9 +18,9 @@ function planeIcon(headingDeg: number, onGround: boolean) {
     </svg>`;
   return L.divIcon({
     className: "",
-    html: `<div class="aw-plane" style="--pc:${color}; transform: rotate(${headingDeg}deg)" role="img" aria-label="Aircraft heading ${Math.round(headingDeg)} degrees">${svg}</div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    html: `<div class="aw-hit"><div class="aw-plane" style="--pc:${color}; transform: rotate(${headingDeg}deg)" role="img" aria-label="Aircraft heading ${Math.round(headingDeg)} degrees">${svg}</div></div>`,
+    iconSize: [PLANE_HIT, PLANE_HIT],
+    iconAnchor: [PLANE_HIT / 2, PLANE_HIT / 2],
   });
 }
 
@@ -149,48 +151,39 @@ export function PlanesLayer({
             interactive
           >
             <Popup>
-              <div className="text-xs leading-relaxed">
-                <div className="flex items-center justify-between gap-2">
+              <div className="aw-popup min-w-[230px]">
+                <div className="aw-popup-head">
                   <div className="text-sm font-semibold tracking-wide">
                     {p.callsign || p.icao24.toUpperCase()}
                   </div>
-                  <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.cls}`}>
-                    {badge.label}
-                  </span>
+                  <span className={`aw-popup-badge ${badge.cls}`}>{badge.label}</span>
                 </div>
-                <div className="text-muted-foreground">{p.originCountry || "Unknown origin"}</div>
-                <div className="mt-2 rounded-md border border-border bg-muted/40 px-2 py-1.5">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">From map center</div>
-                  <div className="font-semibold">{distMi.toFixed(1)} mi · {compass(brg)}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {p.originCountry || "Unknown origin"} · {p.onGround ? "On ground" : "Airborne"}
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5">
-                  <span className="text-muted-foreground">ICAO24</span>
-                  <span className="font-mono">{p.icao24.toUpperCase()}</span>
-                  <span className="text-muted-foreground">Squawk</span>
-                  <span className="font-mono">{p.squawk ?? "—"}</span>
-                  <span className="text-muted-foreground">Status</span>
-                  <span>{p.onGround ? "On ground" : "Airborne"}</span>
-                  <span className="text-muted-foreground">Baro alt</span>
-                  <span>{mToFt(p.baroAltitudeM) != null ? `${mToFt(p.baroAltitudeM)!.toLocaleString()} ft` : "—"}</span>
-                  <span className="text-muted-foreground">GPS alt</span>
-                  <span>{mToFt(p.geoAltitudeM) != null ? `${mToFt(p.geoAltitudeM)!.toLocaleString()} ft` : "—"}</span>
-                  <span className="text-muted-foreground">Ground speed</span>
-                  <span>{msToKt(p.velocityMs) != null ? `${msToKt(p.velocityMs)} kt` : "—"}</span>
-                  <span className="text-muted-foreground">Vertical</span>
-                  <span>
-                    {vr != null ? `${vr > 0 ? "+" : ""}${Math.round(vr * 196.85)} fpm` : "—"} · {trend}
-                  </span>
-                  <span className="text-muted-foreground">Heading</span>
-                  <span>{compass(p.trueTrackDeg)}</span>
-                  <span className="text-muted-foreground">Position</span>
-                  <span className="font-mono">{p.lat.toFixed(3)}, {p.lng.toFixed(3)}</span>
+                <div className="aw-popup-meta">
+                  <div className="aw-popup-meta-label">From map center</div>
+                  <div className="font-semibold">
+                    {distMi.toFixed(1)} mi · {compass(brg)}
+                  </div>
                 </div>
-                <div className="mt-2 flex gap-2">
+                <dl className="aw-popup-grid">
+                  <dt>ICAO24</dt><dd className="font-mono">{p.icao24.toUpperCase()}</dd>
+                  <dt>Squawk</dt><dd className="font-mono">{p.squawk ?? "—"}</dd>
+                  <dt>Baro alt</dt><dd>{mToFt(p.baroAltitudeM) != null ? `${mToFt(p.baroAltitudeM)!.toLocaleString()} ft` : "—"}</dd>
+                  <dt>GPS alt</dt><dd>{mToFt(p.geoAltitudeM) != null ? `${mToFt(p.geoAltitudeM)!.toLocaleString()} ft` : "—"}</dd>
+                  <dt>Ground speed</dt><dd>{msToKt(p.velocityMs) != null ? `${msToKt(p.velocityMs)} kt` : "—"}</dd>
+                  <dt>Vertical</dt>
+                  <dd>{vr != null ? `${vr > 0 ? "+" : ""}${Math.round(vr * 196.85)} fpm` : "—"} · {trend}</dd>
+                  <dt>Heading</dt><dd>{compass(p.trueTrackDeg)}</dd>
+                  <dt>Position</dt><dd className="font-mono">{p.lat.toFixed(3)}, {p.lng.toFixed(3)}</dd>
+                </dl>
+                <div className="aw-popup-actions">
                   <a
                     href={`https://globe.adsbexchange.com/?icao=${p.icao24}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-primary underline"
+                    className="aw-popup-btn"
                   >
                     ADS-B Exchange
                   </a>
@@ -198,13 +191,14 @@ export function PlanesLayer({
                     href={`https://www.flightradar24.com/${p.callsign || ""}`.trim()}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-primary underline"
+                    className="aw-popup-btn"
                   >
                     Flightradar24
                   </a>
                 </div>
               </div>
             </Popup>
+
           </Marker>
         );
       })}

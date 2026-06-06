@@ -434,15 +434,20 @@ export function CameraMap() {
           className="h-full w-full"
           worldCopyJump
           zoomControl
+          attributionControl={false}
+          preferCanvas
         >
           <TileLayer
             key={settings.basemap}
-            attribution={BASEMAPS[settings.basemap].attribution}
+            attribution=""
             url={BASEMAPS[settings.basemap].url}
             subdomains={BASEMAPS[settings.basemap].subdomains ?? "abc"}
             maxZoom={BASEMAPS[settings.basemap].maxZoom}
             className={BASEMAPS[settings.basemap].className}
+            updateWhenZooming={false}
+            keepBuffer={4}
           />
+
           {BASEMAPS[settings.basemap].hillshadeUrl && (
             <TileLayer
               key={`${settings.basemap}-hillshade`}
