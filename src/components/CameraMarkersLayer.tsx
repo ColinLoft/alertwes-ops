@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { getStatus, parseViewLine, type Camera } from "@/lib/alertwest";
-import { bearingDeg } from "@/lib/geo";
+import { getStatus, parseViewLine, relTime, type Camera } from "@/lib/alertwest";
+import { bearingDeg, haversineMi } from "@/lib/geo";
+
+const HIT = 40; // px hit-area for divIcon (much larger than the visible glyph)
 
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string, headingDeg: number | null, badge: number) {
   const safe = label.replace(/"/g, "&quot;");
@@ -13,19 +15,16 @@ function makeIcon(color: string, active: boolean, pulse: boolean, label: string,
         d="M12 2.2l8.4 16.6c.35.7-.4 1.46-1.12 1.13L12 16.6 4.72 19.93c-.73.33-1.47-.43-1.12-1.13L12 2.2z"/>
       <circle cx="12" cy="14.5" r="2.3" fill="rgba(0,0,0,0.45)"/>
     </svg>`;
-  const badgeHtml =
-    badge > 1
-      ? `<span class="aw-badge" aria-label="${badge} cameras here">${badge}</span>`
-      : "";
+  const badgeHtml = badge > 1 ? `<span class="aw-badge">${badge}</span>` : "";
   return L.divIcon({
     className: "",
-    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}" role="button" tabindex="0" aria-label="${safe}">${svg}${badgeHtml}</div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    html: `<div class="aw-hit"><div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}" role="button" tabindex="0" aria-label="${safe}">${svg}${badgeHtml}</div></div>`,
+    iconSize: [HIT, HIT],
+    iconAnchor: [HIT / 2, HIT / 2],
   });
 }
 
-const CELL_PX = 24;
+const CELL_PX = 28;
 
 export function CameraMarkersLayer({
   cameras,
@@ -46,7 +45,6 @@ export function CameraMarkersLayer({
     zoomend: () => setZoom(map.getZoom()),
   });
 
-  // group cameras by pixel cell at current zoom
   const groupByCamId = useMemo(() => {
     const cells = new Map<string, Camera[]>();
     const camToKey = new Map<string, string>();
@@ -69,6 +67,13 @@ export function CameraMarkersLayer({
     return groupOf;
   }, [cameras, zoom, map]);
 
+  const openCameraPopup = (c: Camera) => {
+    setPicker({
+      pos: [Number(c.site.latitude), Number(c.site.longitude)],
+      group: [c],
+    });
+  };
+
   return (
     <>
       {cameras.map((c) => {
@@ -78,7 +83,7 @@ export function CameraMarkersLayer({
         const active = selectedId === c.site.id;
         const s = getStatus(c);
         const group = groupByCamId.get(c.site.id) ?? [c];
-        const label = `${c.name}${c.site.county || c.site.state ? ` — ${[c.site.county, c.site.state].filter(Boolean).join(", ")}` : ""} (${s.label})`;
+        const label = `${c.name} (${s.label})`;
         const vl = parseViewLine(c.view.line);
         const heading =
           vl && vl.length >= 2
@@ -95,12 +100,11 @@ export function CameraMarkersLayer({
             eventHandlers={{
               click: () => {
                 if (group.length > 1) {
-                  // Open the picker centered on the average of the group so users see all options.
                   const avgLat = group.reduce((sum, g) => sum + Number(g.site.latitude), 0) / group.length;
                   const avgLng = group.reduce((sum, g) => sum + Number(g.site.longitude), 0) / group.length;
                   setPicker({ pos: [avgLat, avgLng], group });
                 } else {
-                  onSelect(c.site.id);
+                  openCameraPopup(c);
                 }
               },
             }}
@@ -113,42 +117,88 @@ export function CameraMarkersLayer({
           position={picker.pos}
           eventHandlers={{ remove: () => setPicker(null) }}
         >
-          <div className="min-w-[220px]">
-            <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {picker.group.length} cameras here
-            </div>
-            <ul className="max-h-64 space-y-0.5 overflow-y-auto">
-              {picker.group
-                .slice()
-                .sort((a, b) => (getStatus(a).ageMs ?? Infinity) - (getStatus(b).ageMs ?? Infinity))
-                .map((c) => {
-                  const s = getStatus(c);
-                  return (
-                    <li key={c.site.id}>
-                      <button
-                        onClick={() => {
-                          onSelect(c.site.id);
-                          setPicker(null);
-                          map.closePopup();
-                        }}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-white/10"
-                      >
-                        <span
-                          className="h-2 w-2 shrink-0 rounded-full"
-                          style={{ background: s.color }}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium text-foreground">{c.name}</span>
-                          <span className="block truncate text-[10px] text-muted-foreground">
-                            {[c.site.county, c.site.state].filter(Boolean).join(", ") || "—"} · {s.label}
+          {picker.group.length > 1 ? (
+            <div className="aw-popup min-w-[220px]">
+              <div className="aw-popup-eyebrow">{picker.group.length} cameras here</div>
+              <ul className="aw-popup-list">
+                {picker.group
+                  .slice()
+                  .sort((a, b) => (getStatus(a).ageMs ?? Infinity) - (getStatus(b).ageMs ?? Infinity))
+                  .map((c) => {
+                    const s = getStatus(c);
+                    return (
+                      <li key={c.site.id}>
+                        <button
+                          onClick={() => {
+                            onSelect(c.site.id);
+                            setPicker(null);
+                            map.closePopup();
+                          }}
+                          className="aw-popup-row"
+                        >
+                          <span className="aw-dot" style={{ background: s.color }} />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium text-foreground">{c.name}</span>
+                            <span className="block truncate text-[10px] text-muted-foreground">
+                              {[c.site.county, c.site.state].filter(Boolean).join(", ") || "—"} · {s.label}
+                            </span>
                           </span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-            </ul>
-          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+              </ul>
+            </div>
+          ) : (
+            (() => {
+              const c = picker.group[0];
+              const s = getStatus(c);
+              const lat = Number(c.site.latitude);
+              const lng = Number(c.site.longitude);
+              const center = map.getCenter();
+              const dist = haversineMi({ lat, lng }, { lat: center.lat, lng: center.lng });
+              const brg = bearingDeg({ lat: center.lat, lng: center.lng }, { lat, lng });
+              return (
+                <div className="aw-popup min-w-[230px]">
+                  <div className="aw-popup-head">
+                    <div className="text-sm font-semibold tracking-wide">{c.name}</div>
+                    <span
+                      className="aw-popup-badge"
+                      style={{ borderColor: s.color, color: s.color, background: `${s.color}1f` }}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {[c.site.county, c.site.state].filter(Boolean).join(", ") || "—"}
+                  </div>
+                  <div className="aw-popup-meta">
+                    <div className="aw-popup-meta-label">From map center</div>
+                    <div className="font-semibold">
+                      {dist.toFixed(1)} mi · {Math.round(brg)}°
+                    </div>
+                  </div>
+                  <dl className="aw-popup-grid">
+                    <dt>Source</dt><dd className="truncate">{c.source || "—"}</dd>
+                    <dt>Last frame</dt><dd>{s.ageMs != null ? relTime(new Date(Date.now() - s.ageMs)) : "—"}</dd>
+                    <dt>Position</dt><dd className="font-mono">{lat.toFixed(3)}, {lng.toFixed(3)}</dd>
+                  </dl>
+                  <div className="aw-popup-actions">
+                    <button
+                      onClick={() => {
+                        onSelect(c.site.id);
+                        setPicker(null);
+                        map.closePopup();
+                      }}
+                      className="aw-popup-btn aw-popup-btn-primary"
+                    >
+                      Open details
+                    </button>
+                  </div>
+                </div>
+              );
+            })()
+          )}
         </Popup>
       )}
     </>
