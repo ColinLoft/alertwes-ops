@@ -117,3 +117,97 @@ export function useSettings(): [Settings, (s: Settings | ((p: Settings) => Setti
 
   return [state, update];
 }
+
+/* ---------- URL persistence ----------
+ * Encodes the shareable view-state into URL search params so links
+ * can be sent to others and refreshes preserve the same map setup.
+ */
+
+const URL_KEYS = ["basemap", "labels", "planes", "pradius", "radius"] as const;
+
+function encodeRadius(r: RadiusFilter | null): string | null {
+  if (!r) return null;
+  return `${r.lat.toFixed(5)},${r.lng.toFixed(5)},${r.km},${encodeURIComponent(r.address)}`;
+}
+
+function decodeRadius(v: string | null): RadiusFilter | null {
+  if (!v) return null;
+  const parts = v.split(",");
+  if (parts.length < 3) return null;
+  const lat = Number(parts[0]);
+  const lng = Number(parts[1]);
+  const mi = Number(parts[2]);
+  if (![lat, lng, mi].every(Number.isFinite)) return null;
+  const address = parts.slice(3).join(",");
+  return { lat, lng, km: mi, address: address ? decodeURIComponent(address) : "Shared location" };
+}
+
+export function settingsToUrlParams(s: Settings): URLSearchParams {
+  const p = new URLSearchParams();
+  p.set("basemap", s.basemap);
+  p.set("labels", s.showLabels ? "1" : "0");
+  p.set("planes", s.showPlanes ? "1" : "0");
+  const pr = encodeRadius(s.planesRadius);
+  if (pr) p.set("pradius", pr);
+  const r = encodeRadius(s.radius);
+  if (r) p.set("radius", r);
+  return p;
+}
+
+export function applyUrlParamsToSettings(s: Settings, params: URLSearchParams): Settings {
+  const next = { ...s };
+  const bm = params.get("basemap");
+  if (bm && bm in DEFAULT_BASEMAPS) next.basemap = bm as Basemap;
+  const labels = params.get("labels");
+  if (labels === "0" || labels === "1") next.showLabels = labels === "1";
+  const planes = params.get("planes");
+  if (planes === "0" || planes === "1") next.showPlanes = planes === "1";
+  if (params.has("pradius")) next.planesRadius = decodeRadius(params.get("pradius"));
+  if (params.has("radius")) next.radius = decodeRadius(params.get("radius"));
+  return next;
+}
+
+// Whitelist of known basemap ids — kept in sync with Basemap union.
+const DEFAULT_BASEMAPS: Record<Basemap, true> = {
+  darkTerrain: true,
+  voyager: true,
+  streets: true,
+  satellite: true,
+  terrain: true,
+  dark: true,
+  topo: true,
+};
+
+/** Two-way sync settings ↔ URL search params on the current page. */
+export function useSettingsUrlSync(
+  settings: Settings,
+  setSettings: (s: Settings | ((p: Settings) => Settings)) => void,
+) {
+  // Read URL once on mount and merge into settings (URL wins for shareable keys).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (![...URL_KEYS].some((k) => params.has(k))) return;
+    setSettings((prev) => applyUrlParamsToSettings(prev, params));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Write current settings into URL whenever shareable fields change.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const incoming = settingsToUrlParams(settings);
+    const current = new URLSearchParams(window.location.search);
+    // Drop our keys, then merge updated values back in.
+    URL_KEYS.forEach((k) => current.delete(k));
+    incoming.forEach((v, k) => current.set(k, v));
+    const qs = current.toString();
+    const url = `${window.location.pathname}${qs ? `?${qs}` : ""}${window.location.hash}`;
+    window.history.replaceState(null, "", url);
+  }, [
+    settings.basemap,
+    settings.showLabels,
+    settings.showPlanes,
+    settings.planesRadius,
+    settings.radius,
+  ]);
+}
