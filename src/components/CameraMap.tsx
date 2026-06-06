@@ -61,7 +61,8 @@ function useOnlineStatus() {
 
 export function CameraMap() {
   const online = useOnlineStatus();
-  const [settings] = useSettings();
+  const [settings, setSettings] = useSettings();
+  useSettingsUrlSync(settings, setSettings);
   const { data, isLoading, isFetching, error, refetch, dataUpdatedAt, failureCount } = useQuery({
     queryKey: ["aw-cameras"],
     queryFn: fetchCameras,
