@@ -189,9 +189,20 @@
   border: none !important;
   box-shadow: 0 4px 16px oklch(0 0 0 / 0.3) !important;
 }
+/* Hit-area wrapper around small map glyphs so they're easy to tap. */
+.aw-hit {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
 /* Camera arrow marker */
 .aw-marker {
   --mc: #f4a261;
+  position: relative;
   width: 22px;
   height: 22px;
   color: var(--mc);
@@ -199,10 +210,8 @@
   transition: transform 0.15s ease;
 }
 .aw-marker svg { display: block; width: 100%; height: 100%; }
-.aw-marker:hover { transform: scale(1.25); }
-.aw-marker.aw-active {
-  transform: scale(1.4);
-}
+.aw-hit:hover .aw-marker { transform: scale(1.25); }
+.aw-marker.aw-active { transform: scale(1.4); }
 .aw-marker.aw-pulse::before {
   content: "";
   position: absolute;
@@ -223,6 +232,8 @@
 }
 
 .aw-plane {
+  width: 26px;
+  height: 26px;
   color: var(--pc, #facc15);
   transform-origin: center;
   transition: transform 0.4s linear;
