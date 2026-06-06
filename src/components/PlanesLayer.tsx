@@ -94,6 +94,12 @@ export function PlanesLayer({
     ? all.filter((p) => haversineMi({ lat: p.lat, lng: p.lng }, { lat: radius.lat, lng: radius.lng }) <= radius.km)
     : all;
 
+  // Publish currently-rendered planes so the search box (and other UI) can use them.
+  useEffect(() => {
+    publishPlanes(planes);
+  }, [planes]);
+
+
   return (
     <>
       {radius && (
