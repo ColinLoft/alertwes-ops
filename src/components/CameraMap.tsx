@@ -411,7 +411,7 @@ export function CameraMap() {
         {settings.radius && (
           <Circle
             center={[settings.radius.lat, settings.radius.lng]}
-            radius={settings.radius.km * 1000}
+            radius={settings.radius.km * 1609.344}
             pathOptions={{
               color: "#f4a261",
               weight: 1.5,
