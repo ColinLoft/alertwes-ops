@@ -505,7 +505,11 @@ export function CameraMap() {
         )}
 
         {settings.showPlanes && (
-          <PlanesLayer refreshSeconds={settings.planesRefreshSeconds} radius={settings.planesRadius} />
+          <PlanesLayer
+            refreshSeconds={settings.planesRefreshSeconds}
+            radius={settings.planesRadius}
+            bounds={planeBounds}
+          />
         )}
         </MapContainer>
       )}
