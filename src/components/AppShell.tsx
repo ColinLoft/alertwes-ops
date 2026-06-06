@@ -11,21 +11,9 @@ import {
   Settings as SettingsIcon,
   LogIn,
   LogOut,
-  Search,
+  Menu,
+  X,
 } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar";
 import { useSettings } from "@/lib/settings";
 import { useAuth, type AppRole } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,86 +22,36 @@ interface NavItem {
   title: string;
   url: string;
   icon: typeof Radar;
-  roles?: AppRole[]; // if omitted, visible to all signed-in users
+  roles?: AppRole[];
 }
 
-const OPS_ITEMS: NavItem[] = [
+const PRIMARY: NavItem[] = [
   { title: "Dispatch", url: "/", icon: Radar },
   { title: "Fleet", url: "/fleet", icon: Plane },
   { title: "Incidents", url: "/incidents", icon: Flame },
   { title: "Bases", url: "/bases", icon: Warehouse },
-  { title: "Disaster Response", url: "/disaster", icon: ShieldAlert },
+  { title: "Disaster", url: "/disaster", icon: ShieldAlert },
 ];
 
-const COMPANY_ITEMS: NavItem[] = [
+const SECONDARY: NavItem[] = [
   { title: "Maintenance", url: "/ops/maintenance", icon: Wrench },
   { title: "Personnel", url: "/ops/personnel", icon: Users },
   { title: "Admin", url: "/admin", icon: SettingsIcon, roles: ["admin"] },
 ];
 
-function NavGroup({ label, items, roles }: { label: string; items: NavItem[]; roles: AppRole[] }) {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const visible = items.filter((i) => !i.roles || i.roles.some((r) => roles.includes(r)));
-  if (visible.length === 0) return null;
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   return (
-    <SidebarGroup>
-      {!collapsed && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {visible.map((item) => {
-            const active = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
-            return (
-              <SidebarMenuItem key={item.url}>
-                <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                  <Link to={item.url} className="flex items-center gap-2">
-                    <item.icon className="h-4 w-4 shrink-0" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
-  );
-}
-
-function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
-  const [settings] = useSettings();
-  const { roles } = useAuth();
-
-  return (
-    <Sidebar collapsible="icon" className="border-r border-white/5">
-      <div className="flex items-center gap-2 px-3 py-3 border-b border-white/5">
-        {settings.logoDataUrl ? (
-          <img src={settings.logoDataUrl} alt="" className="h-7 w-7 rounded object-cover" />
-        ) : (
-          <div
-            className="h-7 w-7 rounded grid place-items-center text-[10px] font-black"
-            style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
-          >
-            AE
-          </div>
-        )}
-        {!collapsed && (
-          <div className="min-w-0">
-            <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Command</div>
-            <div className="truncate font-semibold leading-tight">
-              {settings.brandName || "Aegis"}
-            </div>
-          </div>
-        )}
-      </div>
-      <SidebarContent>
-        <NavGroup label="Operations" items={OPS_ITEMS} roles={roles} />
-        <NavGroup label="Company" items={COMPANY_ITEMS} roles={roles} />
-      </SidebarContent>
-    </Sidebar>
+    <Link
+      to={item.url}
+      className={`group inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium uppercase tracking-wider transition-colors ${
+        active
+          ? "bg-primary/15 text-primary"
+          : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+      }`}
+    >
+      <item.icon className="h-3.5 w-3.5" />
+      <span>{item.title}</span>
+    </Link>
   );
 }
 
@@ -127,14 +65,13 @@ function ClockUTC() {
   const z = now ? now.toISOString().slice(11, 19) : "--:--:--";
   const local = now ? now.toLocaleTimeString([], { hour12: false }) : "--:--:--";
   return (
-    <div className="flex items-center gap-3 font-mono text-[11px] text-muted-foreground" suppressHydrationWarning>
+    <div className="hidden lg:flex items-center gap-2 font-mono text-[11px] text-muted-foreground" suppressHydrationWarning>
       <span><span className="text-foreground/80" suppressHydrationWarning>{local}</span> LOCAL</span>
       <span className="opacity-50">|</span>
       <span><span className="text-foreground/80" suppressHydrationWarning>{z}</span>Z</span>
     </div>
   );
 }
-
 
 function HealthChip({ label, ok = true }: { label: string; ok?: boolean }) {
   return (
@@ -149,69 +86,128 @@ function HealthChip({ label, ok = true }: { label: string; ok?: boolean }) {
 }
 
 function TopBar() {
+  const [settings] = useSettings();
   const { userId, email, roles, loading } = useAuth();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const items = [...PRIMARY, ...SECONDARY].filter(
+    (i) => !i.roles || i.roles.some((r) => roles.includes(r)),
+  );
+  const isActive = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
+
   return (
-    <header className="aw-statbar flex h-12 shrink-0 items-center gap-3 border-b border-white/5 bg-background/40 px-3 backdrop-blur">
-      <SidebarTrigger className="h-8 w-8" />
-      <div className="hidden md:flex items-center gap-1">
-        <HealthChip label="AlertWest" />
-        <HealthChip label="OpenSky" />
-        <HealthChip label="NWS" />
-        <HealthChip label="FIRMS" ok={false} />
-        <HealthChip label="NOTAMs" ok={false} />
-      </div>
-      <div className="ml-auto flex items-center gap-3">
-        <ClockUTC />
-        <Link
-          to="/settings"
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2 text-xs text-foreground/80 hover:bg-white/10"
-          title="Settings"
-        >
-          <SettingsIcon className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Settings</span>
-        </Link>
-        {loading ? null : userId ? (
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:block text-right leading-tight">
-              <div className="text-[11px] text-foreground/90 truncate max-w-[160px]">{email}</div>
-              <div className="text-[9px] uppercase tracking-wider text-muted-foreground">
-                {roles.length ? roles.join(" · ") : "no role"}
-              </div>
-            </div>
-            <button
-              onClick={signOut}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 hover:bg-white/10"
-              title="Sign out"
+    <header className="aw-statbar sticky top-0 z-30 border-b border-white/5 bg-background/70 backdrop-blur">
+      <div className="flex h-12 items-center gap-3 px-3">
+        {/* Brand */}
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          {settings.logoDataUrl ? (
+            <img src={settings.logoDataUrl} alt="" className="h-7 w-7 rounded object-cover" />
+          ) : (
+            <div
+              className="h-7 w-7 rounded grid place-items-center text-[10px] font-black"
+              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
             >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
+              AE
+            </div>
+          )}
+          <div className="hidden sm:block min-w-0 leading-tight">
+            <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">Command</div>
+            <div className="truncate text-sm font-semibold">{settings.brandName || "Aegis"}</div>
           </div>
-        ) : (
+        </Link>
+
+        <div className="hidden xl:flex items-center gap-1 ml-1">
+          <HealthChip label="AlertWest" />
+          <HealthChip label="OpenSky" />
+          <HealthChip label="NWS" />
+          <HealthChip label="FIRMS" />
+          <HealthChip label="USGS" />
+        </div>
+
+        {/* Primary nav (desktop) */}
+        <nav className="hidden md:flex items-center gap-0.5 mx-2 overflow-x-auto">
+          {items.map((it) => (
+            <NavLink key={it.url} item={it} active={isActive(it.url)} />
+          ))}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-2">
+          <ClockUTC />
           <Link
-            to="/auth"
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:brightness-110"
+            to="/settings"
+            className="hidden sm:inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2 text-xs text-foreground/80 hover:bg-white/10"
+            title="Settings"
           >
-            <LogIn className="h-3.5 w-3.5" /> Sign in
+            <SettingsIcon className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline">Settings</span>
           </Link>
-        )}
+          {loading ? null : userId ? (
+            <div className="flex items-center gap-2">
+              <div className="hidden md:block text-right leading-tight">
+                <div className="text-[11px] text-foreground/90 truncate max-w-[160px]">{email}</div>
+                <div className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                  {roles.length ? roles.join(" · ") : "no role"}
+                </div>
+              </div>
+              <button
+                onClick={signOut}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 hover:bg-white/10"
+                title="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/auth"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:brightness-110"
+            >
+              <LogIn className="h-3.5 w-3.5" /> Sign in
+            </Link>
+          )}
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5"
+            aria-label="Menu"
+          >
+            {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
+
+      {mobileOpen && (
+        <div className="md:hidden border-t border-white/5 px-2 py-2 grid grid-cols-2 gap-1">
+          {items.map((it) => (
+            <Link
+              key={it.url}
+              to={it.url}
+              onClick={() => setMobileOpen(false)}
+              className={`inline-flex h-9 items-center gap-2 rounded-md px-2 text-xs font-medium ${
+                isActive(it.url)
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+              }`}
+            >
+              <it.icon className="h-4 w-4" />
+              {it.title}
+            </Link>
+          ))}
+        </div>
+      )}
     </header>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen w-full bg-background text-foreground">
-        <AppSidebar />
-        <div className="flex flex-1 flex-col min-w-0">
-          <TopBar />
-          <main className="flex-1 min-h-0 min-w-0 relative">{children}</main>
-        </div>
-      </div>
-    </SidebarProvider>
+    <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
+      <TopBar />
+      <main className="flex-1 min-h-0 min-w-0 relative">{children}</main>
+    </div>
   );
 }
