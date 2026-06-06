@@ -435,9 +435,9 @@ export function CameraMap() {
               className={BASEMAPS[settings.basemap].labelsClassName}
             />
           )}
-          <ScaleControl position="bottomleft" imperial metric />
           <FlyTo target={flyTarget} />
           <FlyTo target={planeFlyTarget} />
+
 
 
         {settings.radius && (
