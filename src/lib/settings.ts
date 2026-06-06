@@ -7,7 +7,14 @@ export interface RadiusFilter {
   km: number;
 }
 
-export type Basemap = "darkTerrain" | "voyager" | "streets" | "satellite" | "terrain" | "dark" | "topo";
+export type Basemap =
+  | "darkTerrain"
+  | "voyager"
+  | "streets"
+  | "satellite"
+  | "terrain"
+  | "dark"
+  | "topo";
 
 export interface Settings {
   // General
@@ -21,8 +28,6 @@ export interface Settings {
   showLabels: boolean;
   showPlanes: boolean;
   planesRefreshSeconds: number;
-
-
 
   // Camera filters
   states: string[];
@@ -47,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 const KEY = "aw.settings.v1";
+const DARK_TERRAIN_MIGRATION_KEY = "aw.settings.darkTerrainDefault.v1";
 
 function read(): Settings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
@@ -55,8 +61,10 @@ function read(): Settings {
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<Settings>;
     const merged = { ...DEFAULT_SETTINGS, ...parsed };
-    if (!parsed.basemap || parsed.basemap === "voyager" || parsed.basemap === "dark") {
+    const needsDarkTerrainMigration = !window.localStorage.getItem(DARK_TERRAIN_MIGRATION_KEY);
+    if (needsDarkTerrainMigration && (!parsed.basemap || parsed.basemap === "voyager" || parsed.basemap === "dark")) {
       merged.basemap = "darkTerrain";
+      window.localStorage.setItem(DARK_TERRAIN_MIGRATION_KEY, "1");
     }
     return merged;
   } catch {
