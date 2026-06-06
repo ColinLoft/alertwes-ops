@@ -364,17 +364,8 @@ function IncidentDetail({
         )}
       </div>
 
-      {/* Assign drone placeholder (Phase 3) */}
-      <div className="p-3 border-b border-white/10">
-        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Dispatch</div>
-        <button
-          disabled
-          className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary/30 px-3 py-2 text-sm font-medium text-primary-foreground/70 cursor-not-allowed"
-          title="Phase 3"
-        >
-          <Send className="h-3.5 w-3.5" /> Assign drone (Phase 3)
-        </button>
-      </div>
+      {/* Dispatch (Phase 3) */}
+      <DispatchPanel incident={incident} />
 
       {/* Timeline */}
       <div className="p-3 flex-1">
