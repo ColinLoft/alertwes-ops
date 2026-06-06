@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { ArrowLeft, Crosshair, Flame, Loader2, MapPin, RotateCcw, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Crosshair, Flame, Loader2, LogIn, LogOut, MapPin, RotateCcw, Trash2 } from "lucide-react";
 import { DEFAULT_SETTINGS, useSettings, type Basemap, type Settings } from "@/lib/settings";
 import { BASEMAPS } from "@/lib/basemaps";
 import { geocode } from "@/lib/geo";
 import { fetchCameras } from "@/lib/alertwest";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -21,6 +22,14 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const [settings, setSettings] = useSettings();
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setAuthEmail(data.session?.user.email ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) =>
+      setAuthEmail(s?.user.email ?? null),
+    );
+    return () => sub.subscription.unsubscribe();
+  }, []);
   const { data: cameras = [] } = useQuery({
     queryKey: ["aw-cameras"],
     queryFn: fetchCameras,
@@ -82,19 +91,41 @@ function SettingsPage() {
               </div>
             </div>
           </div>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to map
-          </Link>
+          <div className="flex items-center gap-2">
+            {authEmail ? (
+              <>
+                <span className="hidden sm:inline text-[11px] text-muted-foreground max-w-[160px] truncate">
+                  {authEmail}
+                </span>
+                <button
+                  onClick={() => supabase.auth.signOut()}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
+                >
+                  <LogOut className="h-3.5 w-3.5" /> Sign out
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/auth"
+                className="inline-flex items-center gap-1.5 rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
+              >
+                <LogIn className="h-3.5 w-3.5" /> Sign in to sync
+              </Link>
+            )}
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to map
+            </Link>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
         {/* Branding */}
-        <Section title="Branding" description="Upload your own logo and pick the main UI colors. Saved on this device and used everywhere in the app.">
+        <Section title="Branding" description={authEmail ? "Synced to your account — your logo and colors follow you across devices." : "Saved on this device. Sign in to sync across devices."}>
           <div className="space-y-4 p-4">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-background">
