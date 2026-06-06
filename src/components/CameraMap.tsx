@@ -368,6 +368,7 @@ export function CameraMap() {
             url={BASEMAPS[settings.basemap].url}
             subdomains={BASEMAPS[settings.basemap].subdomains ?? "abc"}
             maxZoom={BASEMAPS[settings.basemap].maxZoom}
+            className={BASEMAPS[settings.basemap].className}
           />
           {settings.showLabels && BASEMAPS[settings.basemap].labelsUrl && (
             <TileLayer
@@ -376,6 +377,7 @@ export function CameraMap() {
               attribution=""
               subdomains="abcd"
               maxZoom={BASEMAPS[settings.basemap].maxZoom}
+              className={BASEMAPS[settings.basemap].labelsClassName}
             />
           )}
           <ScaleControl position="bottomleft" imperial metric />

@@ -160,6 +160,13 @@
 .leaflet-tile-pane {
   filter: saturate(0.92) contrast(1.02);
 }
+.aw-tile-dark-relief {
+  filter: brightness(0.36) contrast(1.45) saturate(0.9) hue-rotate(175deg) invert(0.88);
+}
+.aw-tile-labels-bright {
+  filter: brightness(1.35) contrast(1.1);
+  opacity: 0.82 !important;
+}
 .leaflet-control-attribution,
 .leaflet-control-zoom a {
   background: oklch(0.18 0.02 250 / 0.55) !important;
