@@ -14,6 +14,162 @@ export type Database = {
   }
   public: {
     Tables: {
+      airframes: {
+        Row: {
+          created_at: string
+          cruise_speed_mph: number
+          endurance_min: number
+          id: string
+          manufacturer: string | null
+          model: string
+          notes: string | null
+          range_mi: number
+          retardant_capacity_l: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cruise_speed_mph?: number
+          endurance_min?: number
+          id?: string
+          manufacturer?: string | null
+          model: string
+          notes?: string | null
+          range_mi?: number
+          retardant_capacity_l?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cruise_speed_mph?: number
+          endurance_min?: number
+          id?: string
+          manufacturer?: string | null
+          model?: string
+          notes?: string | null
+          range_mi?: number
+          retardant_capacity_l?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bases: {
+        Row: {
+          city: string | null
+          code: string
+          created_at: string
+          hangar_capacity: number
+          id: string
+          is_hq: boolean
+          lat: number
+          lng: number
+          name: string
+          notes: string | null
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          code: string
+          created_at?: string
+          hangar_capacity?: number
+          id?: string
+          is_hq?: boolean
+          lat: number
+          lng: number
+          name: string
+          notes?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          code?: string
+          created_at?: string
+          hangar_capacity?: number
+          id?: string
+          is_hq?: boolean
+          lat?: number
+          lng?: number
+          name?: string
+          notes?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      drones: {
+        Row: {
+          airframe_id: string | null
+          base_id: string | null
+          battery_pct: number
+          created_at: string
+          flight_hours: number
+          heading_deg: number | null
+          id: string
+          last_lat: number | null
+          last_lng: number | null
+          last_telemetry_at: string | null
+          next_service_at: string | null
+          notes: string | null
+          retardant_l: number
+          status: Database["public"]["Enums"]["drone_status"]
+          tail_number: string
+          updated_at: string
+        }
+        Insert: {
+          airframe_id?: string | null
+          base_id?: string | null
+          battery_pct?: number
+          created_at?: string
+          flight_hours?: number
+          heading_deg?: number | null
+          id?: string
+          last_lat?: number | null
+          last_lng?: number | null
+          last_telemetry_at?: string | null
+          next_service_at?: string | null
+          notes?: string | null
+          retardant_l?: number
+          status?: Database["public"]["Enums"]["drone_status"]
+          tail_number: string
+          updated_at?: string
+        }
+        Update: {
+          airframe_id?: string | null
+          base_id?: string | null
+          battery_pct?: number
+          created_at?: string
+          flight_hours?: number
+          heading_deg?: number | null
+          id?: string
+          last_lat?: number | null
+          last_lng?: number | null
+          last_telemetry_at?: string | null
+          next_service_at?: string | null
+          notes?: string | null
+          retardant_l?: number
+          status?: Database["public"]["Enums"]["drone_status"]
+          tail_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drones_airframe_id_fkey"
+            columns: ["airframe_id"]
+            isOneToOne: false
+            referencedRelation: "airframes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drones_base_id_fkey"
+            columns: ["base_id"]
+            isOneToOne: false
+            referencedRelation: "bases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_branding: {
         Row: {
           accent_color: string | null
@@ -41,15 +197,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "dispatcher" | "pilot" | "maintenance"
+      drone_status:
+        | "ready"
+        | "preflight"
+        | "inflight"
+        | "returning"
+        | "charging"
+        | "maintenance"
+        | "offline"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -176,6 +367,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "dispatcher", "pilot", "maintenance"],
+      drone_status: [
+        "ready",
+        "preflight",
+        "inflight",
+        "returning",
+        "charging",
+        "maintenance",
+        "offline",
+      ],
+    },
   },
 } as const
