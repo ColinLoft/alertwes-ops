@@ -170,6 +170,118 @@ export type Database = {
           },
         ]
       }
+      incident_events: {
+        Row: {
+          actor: string | null
+          created_at: string
+          event_type: string
+          id: string
+          incident_id: string
+          message: string | null
+          payload: Json | null
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          incident_id: string
+          message?: string | null
+          payload?: Json | null
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          incident_id?: string
+          message?: string | null
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_events_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incidents: {
+        Row: {
+          acreage: number | null
+          assigned_drone_id: string | null
+          confidence: number | null
+          county: string | null
+          created_at: string
+          created_by: string | null
+          discovered_at: string
+          external_id: string | null
+          frp: number | null
+          id: string
+          lat: number
+          lng: number
+          notes: string | null
+          priority: Database["public"]["Enums"]["incident_priority"]
+          source: Database["public"]["Enums"]["incident_source"]
+          state: string | null
+          status: Database["public"]["Enums"]["incident_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acreage?: number | null
+          assigned_drone_id?: string | null
+          confidence?: number | null
+          county?: string | null
+          created_at?: string
+          created_by?: string | null
+          discovered_at?: string
+          external_id?: string | null
+          frp?: number | null
+          id?: string
+          lat: number
+          lng: number
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["incident_priority"]
+          source?: Database["public"]["Enums"]["incident_source"]
+          state?: string | null
+          status?: Database["public"]["Enums"]["incident_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acreage?: number | null
+          assigned_drone_id?: string | null
+          confidence?: number | null
+          county?: string | null
+          created_at?: string
+          created_by?: string | null
+          discovered_at?: string
+          external_id?: string | null
+          frp?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["incident_priority"]
+          source?: Database["public"]["Enums"]["incident_source"]
+          state?: string | null
+          status?: Database["public"]["Enums"]["incident_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_assigned_drone_id_fkey"
+            columns: ["assigned_drone_id"]
+            isOneToOne: false
+            referencedRelation: "drones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_branding: {
         Row: {
           accent_color: string | null
@@ -242,6 +354,22 @@ export type Database = {
         | "charging"
         | "maintenance"
         | "offline"
+      incident_priority: "p1" | "p2" | "p3" | "p4"
+      incident_source:
+        | "alertwest"
+        | "firms"
+        | "nws"
+        | "user"
+        | "manual"
+        | "other"
+      incident_status:
+        | "new"
+        | "triaging"
+        | "dispatched"
+        | "onscene"
+        | "contained"
+        | "closed"
+        | "false_positive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -378,6 +506,17 @@ export const Constants = {
         "charging",
         "maintenance",
         "offline",
+      ],
+      incident_priority: ["p1", "p2", "p3", "p4"],
+      incident_source: ["alertwest", "firms", "nws", "user", "manual", "other"],
+      incident_status: [
+        "new",
+        "triaging",
+        "dispatched",
+        "onscene",
+        "contained",
+        "closed",
+        "false_positive",
       ],
     },
   },
