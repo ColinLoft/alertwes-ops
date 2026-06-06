@@ -139,10 +139,14 @@ export function CameraMap() {
     return [parsed[0], [far.lat, far.lng]] as [number, number][];
   }, [selected]);
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return [] as Camera[];
+  type SearchHit =
+    | { kind: "camera"; camera: Camera }
+    | { kind: "plane"; plane: Plane };
+
+  const filtered = useMemo<SearchHit[]>(() => {
+    if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return visibleCameras
+    const cams: SearchHit[] = visibleCameras
       .filter(
         (c) =>
           c.name.toLowerCase().includes(q) ||
@@ -150,8 +154,21 @@ export function CameraMap() {
           (c.site.county ?? "").toLowerCase().includes(q) ||
           (c.site.state ?? "").toLowerCase().includes(q),
       )
-      .slice(0, 30);
-  }, [visibleCameras, query]);
+      .slice(0, 20)
+      .map((c) => ({ kind: "camera", camera: c }));
+
+    const planes: SearchHit[] = livePlanes
+      .filter((p) => {
+        const cs = (p.callsign || "").toLowerCase();
+        const icao = p.icao24.toLowerCase();
+        const origin = (p.originCountry || "").toLowerCase();
+        return cs.includes(q) || icao.includes(q) || origin.includes(q);
+      })
+      .slice(0, 15)
+      .map((p) => ({ kind: "plane", plane: p }));
+
+    return [...cams, ...planes].slice(0, 30);
+  }, [visibleCameras, livePlanes, query]);
 
   const [showHelp, setShowHelp] = useState(false);
 
