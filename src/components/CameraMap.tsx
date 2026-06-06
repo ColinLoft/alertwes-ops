@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, Circle, ScaleControl, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, Circle, ScaleControl } from "react-leaflet";
 import { Link } from "@tanstack/react-router";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCameras, getStatus, parseViewLine, relTime, type Camera } from "@/lib/alertwest";
 import { CameraPanel } from "./CameraPanel";
 import { CameraList } from "./CameraList";
 import { PlanesLayer } from "./PlanesLayer";
+import { CameraMarkersLayer } from "./CameraMarkersLayer";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
+import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, Plane as PlaneIcon, RefreshCw, Search, Settings as SettingsIcon, Video as VideoIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
 import { useSettings, useSettingsUrlSync } from "@/lib/settings";
 import { BASEMAPS } from "@/lib/basemaps";
-import { haversineMi, bearingDeg, destinationPointMi } from "@/lib/geo";
+import { bearingDeg, destinationPointMi, haversineMi } from "@/lib/geo";
+import { subscribePlanes } from "@/lib/planes-bus";
+import type { Plane } from "@/lib/opensky";
 
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string, headingDeg: number | null) {
   const safe = label.replace(/"/g, "&quot;");
