@@ -489,7 +489,7 @@ function RadiusEditor({
             }}
             className="w-16 bg-transparent text-right outline-none"
           />
-          <span className="text-xs text-muted-foreground">km</span>
+          <span className="text-xs text-muted-foreground">mi</span>
         </div>
         <button
           onClick={apply}
