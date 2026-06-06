@@ -11,6 +11,10 @@ export interface BasemapDef {
   /** Optional overlay (e.g. labels on top of satellite). */
   labelsUrl?: string;
   labelsClassName?: string;
+  /** Optional always-on overlay (e.g. hillshade terrain). */
+  hillshadeUrl?: string;
+  hillshadeClassName?: string;
+  hillshadeSubdomains?: string;
 }
 
 export const BASEMAPS: Record<Basemap, BasemapDef> = {
