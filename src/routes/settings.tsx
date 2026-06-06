@@ -489,7 +489,7 @@ function RadiusEditor({
             }}
             className="w-16 bg-transparent text-right outline-none"
           />
-          <span className="text-xs text-muted-foreground">km</span>
+          <span className="text-xs text-muted-foreground">mi</span>
         </div>
         <button
           onClick={apply}
@@ -523,7 +523,7 @@ function RadiusEditor({
           <div className="min-w-0 flex-1">
             <div className="truncate font-medium text-foreground">{current.address}</div>
             <div className="text-muted-foreground">
-              {current.lat.toFixed(4)}, {current.lng.toFixed(4)} · within {current.km} km
+              {current.lat.toFixed(4)}, {current.lng.toFixed(4)} · within {current.km} mi
             </div>
           </div>
           <button

@@ -14,6 +14,33 @@ export function haversineKm(
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
+export const KM_PER_MI = 1.609344;
+export const haversineMi = (
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+) => haversineKm(a, b) / KM_PER_MI;
+
+/** Destination point given start, bearing (deg), and distance (miles). */
+export function destinationPointMi(
+  start: { lat: number; lng: number },
+  bearingDegrees: number,
+  distMi: number,
+): { lat: number; lng: number } {
+  const R = 3958.7613; // Earth radius in miles
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const toDeg = (r: number) => (r * 180) / Math.PI;
+  const delta = distMi / R;
+  const theta = toRad(bearingDegrees);
+  const phi1 = toRad(start.lat);
+  const lam1 = toRad(start.lng);
+  const sinPhi2 = Math.sin(phi1) * Math.cos(delta) + Math.cos(phi1) * Math.sin(delta) * Math.cos(theta);
+  const phi2 = Math.asin(sinPhi2);
+  const y = Math.sin(theta) * Math.sin(delta) * Math.cos(phi1);
+  const x = Math.cos(delta) - Math.sin(phi1) * sinPhi2;
+  const lam2 = lam1 + Math.atan2(y, x);
+  return { lat: toDeg(phi2), lng: ((toDeg(lam2) + 540) % 360) - 180 };
+}
+
 /** Initial bearing in degrees (0 = north, clockwise) from a → b. */
 export function bearingDeg(
   a: { lat: number; lng: number },

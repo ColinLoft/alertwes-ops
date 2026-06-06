@@ -3,15 +3,14 @@ import { Circle, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPlanes, mToFt, msToKt, type Bbox, type Plane } from "@/lib/opensky";
-import { haversineKm } from "@/lib/geo";
+import { haversineMi, bearingDeg } from "@/lib/geo";
 import type { RadiusFilter } from "@/lib/settings";
 
 function planeIcon(headingDeg: number, onGround: boolean) {
   const color = onGround ? "#fde68a" : "#facc15";
-  // Aircraft silhouette (top-down). Nose points up at 0°, rotation handles heading.
   const svg = `
     <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true">
-      <path fill="currentColor" stroke="rgba(0,0,0,0.45)" stroke-width="0.6" stroke-linejoin="round"
+      <path fill="currentColor" stroke="rgba(0,0,0,0.55)" stroke-width="0.8" stroke-linejoin="round"
         d="M16 1.5c-1.05 0-1.7 1.1-1.85 2.4l-.35 6.2L2 17.2v2.4l11.8-3 .15 6.1-3.4 2.2v1.9l5.45-1.4 5.45 1.4v-1.9l-3.4-2.2.15-6.1L30 19.6v-2.4l-11.8-6.6-.35-6.2C17.7 2.6 17.05 1.5 16 1.5z"/>
     </svg>`;
   return L.divIcon({
@@ -38,12 +37,18 @@ function compass(deg: number | null): string {
   return `${dirs[Math.round(deg / 22.5) % 16]} ${Math.round(deg)}°`;
 }
 
-function fmtRel(unixSec: number): string {
-  if (!unixSec) return "—";
+interface ContactBadge {
+  label: string;
+  cls: string;
+}
+
+function contactBadge(unixSec: number): ContactBadge {
+  if (!unixSec) return { label: "No signal", cls: "bg-rose-500/20 text-rose-300 border-rose-500/40" };
   const diff = Math.max(0, Date.now() / 1000 - unixSec);
-  if (diff < 60) return `${Math.round(diff)}s ago`;
-  if (diff < 3600) return `${Math.round(diff / 60)}m ago`;
-  return `${Math.round(diff / 3600)}h ago`;
+  if (diff < 30) return { label: `Live · ${Math.round(diff)}s`, cls: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" };
+  if (diff < 120) return { label: `Recent · ${Math.round(diff)}s`, cls: "bg-amber-500/20 text-amber-200 border-amber-500/40" };
+  if (diff < 600) return { label: `Stale · ${Math.round(diff / 60)}m`, cls: "bg-orange-500/20 text-orange-300 border-orange-500/40" };
+  return { label: `Outdated · ${Math.round(diff / 60)}m`, cls: "bg-rose-500/25 text-rose-300 border-rose-500/40" };
 }
 
 export function PlanesLayer({
@@ -55,13 +60,23 @@ export function PlanesLayer({
 }) {
   const map = useMap();
   const [bbox, setBbox] = useState<Bbox>(() => getBbox(map));
+  const [center, setCenter] = useState(() => {
+    const c = map.getCenter();
+    return { lat: c.lat, lng: c.lng };
+  });
 
   useEffect(() => {
     setBbox(getBbox(map));
+    const c = map.getCenter();
+    setCenter({ lat: c.lat, lng: c.lng });
   }, [map]);
 
   useMapEvents({
-    moveend: () => setBbox(getBbox(map)),
+    moveend: () => {
+      setBbox(getBbox(map));
+      const c = map.getCenter();
+      setCenter({ lat: c.lat, lng: c.lng });
+    },
     zoomend: () => setBbox(getBbox(map)),
   });
 
@@ -75,7 +90,7 @@ export function PlanesLayer({
 
   const all: Plane[] = data ?? [];
   const planes = radius
-    ? all.filter((p) => haversineKm({ lat: p.lat, lng: p.lng }, { lat: radius.lat, lng: radius.lng }) <= radius.km)
+    ? all.filter((p) => haversineMi({ lat: p.lat, lng: p.lng }, { lat: radius.lat, lng: radius.lng }) <= radius.km)
     : all;
 
   return (
@@ -83,7 +98,7 @@ export function PlanesLayer({
       {radius && (
         <Circle
           center={[radius.lat, radius.lng]}
-          radius={radius.km * 1000}
+          radius={radius.km * 1609.344}
           pathOptions={{
             color: "#facc15",
             weight: 1.25,
@@ -96,6 +111,9 @@ export function PlanesLayer({
       {planes.map((p) => {
         const vr = p.verticalRateMs;
         const trend = vr == null ? "Level" : vr > 0.5 ? "Climbing" : vr < -0.5 ? "Descending" : "Level";
+        const distMi = haversineMi({ lat: p.lat, lng: p.lng }, center);
+        const brg = bearingDeg(center, { lat: p.lat, lng: p.lng });
+        const badge = contactBadge(p.lastContact);
         return (
           <Marker
             key={p.icao24}
@@ -106,10 +124,19 @@ export function PlanesLayer({
           >
             <Popup>
               <div className="text-xs leading-relaxed">
-                <div className="text-sm font-semibold tracking-wide">
-                  {p.callsign || p.icao24.toUpperCase()}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm font-semibold tracking-wide">
+                    {p.callsign || p.icao24.toUpperCase()}
+                  </div>
+                  <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.cls}`}>
+                    {badge.label}
+                  </span>
                 </div>
                 <div className="text-muted-foreground">{p.originCountry || "Unknown origin"}</div>
+                <div className="mt-2 rounded-md border border-border bg-muted/40 px-2 py-1.5">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">From map center</div>
+                  <div className="font-semibold">{distMi.toFixed(1)} mi · {compass(brg)}</div>
+                </div>
                 <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5">
                   <span className="text-muted-foreground">ICAO24</span>
                   <span className="font-mono">{p.icao24.toUpperCase()}</span>
@@ -131,8 +158,6 @@ export function PlanesLayer({
                   <span>{compass(p.trueTrackDeg)}</span>
                   <span className="text-muted-foreground">Position</span>
                   <span className="font-mono">{p.lat.toFixed(3)}, {p.lng.toFixed(3)}</span>
-                  <span className="text-muted-foreground">Last seen</span>
-                  <span>{fmtRel(p.lastContact)}</span>
                 </div>
                 <div className="mt-2 flex gap-2">
                   <a

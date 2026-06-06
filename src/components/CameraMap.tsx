@@ -12,9 +12,9 @@ import { useCameraHistory } from "@/hooks/useCameraHistory";
 import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
-import { useSettings } from "@/lib/settings";
+import { useSettings, useSettingsUrlSync } from "@/lib/settings";
 import { BASEMAPS } from "@/lib/basemaps";
-import { haversineKm, bearingDeg } from "@/lib/geo";
+import { haversineMi, bearingDeg, destinationPointMi } from "@/lib/geo";
 
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string, headingDeg: number | null) {
   const safe = label.replace(/"/g, "&quot;");
@@ -61,7 +61,8 @@ function useOnlineStatus() {
 
 export function CameraMap() {
   const online = useOnlineStatus();
-  const [settings] = useSettings();
+  const [settings, setSettings] = useSettings();
+  useSettingsUrlSync(settings, setSettings);
   const { data, isLoading, isFetching, error, refetch, dataUpdatedAt, failureCount } = useQuery({
     queryKey: ["aw-cameras"],
     queryFn: fetchCameras,
@@ -97,7 +98,7 @@ export function CameraMap() {
         const lat = Number(c.site.latitude);
         const lng = Number(c.site.longitude);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
-        const d = haversineKm({ lat, lng }, { lat: settings.radius.lat, lng: settings.radius.lng });
+        const d = haversineMi({ lat, lng }, { lat: settings.radius.lat, lng: settings.radius.lng });
         if (d > settings.radius.km) return false;
       }
       return true;
@@ -114,7 +115,7 @@ export function CameraMap() {
       const lat = Number(c.site.latitude);
       const lng = Number(c.site.longitude);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-      const d = haversineKm(center, { lat, lng });
+      const d = haversineMi(center, { lat, lng });
       if (!best || d < best.d) best = { id: c.site.id, d };
     }
     if (best) setSelectedId(best.id);
@@ -136,10 +137,18 @@ export function CameraMap() {
     [selected],
   );
 
-  const viewLine = useMemo(
-    () => (selected ? parseViewLine(selected.view.line) : null),
-    [selected],
-  );
+  // Extend the camera's view line to the realistic line-of-sight distance
+  // (~22 miles, similar to ALERTWest's typical visible horizon from a ridgeline).
+  const viewLine = useMemo(() => {
+    if (!selected) return null;
+    const parsed = parseViewLine(selected.view.line);
+    if (!parsed || parsed.length < 2) return parsed;
+    const start = { lat: parsed[0][0], lng: parsed[0][1] };
+    const end = { lat: parsed[parsed.length - 1][0], lng: parsed[parsed.length - 1][1] };
+    const heading = bearingDeg(start, end);
+    const far = destinationPointMi(start, heading, 22);
+    return [parsed[0], [far.lat, far.lng]] as [number, number][];
+  }, [selected]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return [] as Camera[];
@@ -375,6 +384,16 @@ export function CameraMap() {
             maxZoom={BASEMAPS[settings.basemap].maxZoom}
             className={BASEMAPS[settings.basemap].className}
           />
+          {BASEMAPS[settings.basemap].hillshadeUrl && (
+            <TileLayer
+              key={`${settings.basemap}-hillshade`}
+              url={BASEMAPS[settings.basemap].hillshadeUrl as string}
+              attribution=""
+              subdomains={BASEMAPS[settings.basemap].hillshadeSubdomains ?? "abc"}
+              maxZoom={BASEMAPS[settings.basemap].maxZoom}
+              className={BASEMAPS[settings.basemap].hillshadeClassName}
+            />
+          )}
           {settings.showLabels && BASEMAPS[settings.basemap].labelsUrl && (
             <TileLayer
               key={`${settings.basemap}-labels`}
@@ -392,7 +411,7 @@ export function CameraMap() {
         {settings.radius && (
           <Circle
             center={[settings.radius.lat, settings.radius.lng]}
-            radius={settings.radius.km * 1000}
+            radius={settings.radius.km * 1609.344}
             pathOptions={{
               color: "#f4a261",
               weight: 1.5,
@@ -622,7 +641,7 @@ function FilterSummary({
   if (settings.states.length) parts.push(settings.states.join(", "));
   if (settings.counties.length)
     parts.push(`${settings.counties.length} ${settings.counties.length === 1 ? "county" : "counties"}`);
-  if (settings.radius) parts.push(`${settings.radius.km} km of address`);
+  if (settings.radius) parts.push(`${settings.radius.km} mi of address`);
   const isFiltered = parts.length > 0;
 
   return (

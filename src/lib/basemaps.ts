@@ -11,16 +11,25 @@ export interface BasemapDef {
   /** Optional overlay (e.g. labels on top of satellite). */
   labelsUrl?: string;
   labelsClassName?: string;
+  /** Optional always-on overlay (e.g. hillshade terrain). */
+  hillshadeUrl?: string;
+  hillshadeClassName?: string;
+  hillshadeSubdomains?: string;
 }
 
 export const BASEMAPS: Record<Basemap, BasemapDef> = {
   darkTerrain: {
     id: "darkTerrain",
-    label: "Relief",
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-    attribution: "Tiles &copy; Esri",
-    maxZoom: 19,
-    className: "aw-tile-dark-relief",
+    label: "Black Relief",
+    // ESRI Dark Gray Canvas — near-black neutral base for that "blackout" feel.
+    url: "https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri — World Dark Gray Canvas, Hillshade",
+    maxZoom: 16,
+    className: "aw-tile-black-base",
+    // Hillshade overlay reveals terrain & mountains on top of the black base.
+    hillshadeUrl: "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade_Dark/MapServer/tile/{z}/{y}/{x}",
+    hillshadeClassName: "aw-tile-hillshade",
+    // Dark place labels (optional via "Show labels" toggle).
     labelsUrl: "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
     labelsClassName: "aw-tile-labels-bright",
   },
