@@ -61,13 +61,10 @@ function read(): Settings {
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<Settings>;
     const merged = { ...DEFAULT_SETTINGS, ...parsed };
-    const needsDarkTerrainMigration = !window.localStorage.getItem(DARK_TERRAIN_MIGRATION_KEY);
-    if (
-      needsDarkTerrainMigration &&
-      (!parsed.basemap || parsed.basemap === "voyager" || parsed.basemap === "dark")
-    ) {
+    if (!window.localStorage.getItem(DARK_TERRAIN_MIGRATION_KEY)) {
       merged.basemap = "darkTerrain";
       window.localStorage.setItem(DARK_TERRAIN_MIGRATION_KEY, "1");
+      window.localStorage.setItem(KEY, JSON.stringify(merged));
     }
     return merged;
   } catch {
