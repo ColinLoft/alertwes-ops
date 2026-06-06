@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { useApplyBranding, useBrandingSync } from "../lib/branding";
+import { useApplyBranding } from "../lib/branding";
 
 function NotFoundComponent() {
   return (
@@ -79,13 +79,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { name: "description", content: "AlertWest Reimagined displays live camera feeds and aircraft locations on an interactive map." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:description", content: "AlertWest Reimagined displays live camera feeds and aircraft locations on an interactive map." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Lovable App" },
+      { name: "twitter:description", content: "AlertWest Reimagined displays live camera feeds and aircraft locations on an interactive map." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/019f23e9-a7c6-4604-b623-e22a40bbc581/id-preview-59911c64--0f53f6af-3e9c-4d9b-b400-2162e7b546eb.lovable.app-1780722879107.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/019f23e9-a7c6-4604-b623-e22a40bbc581/id-preview-59911c64--0f53f6af-3e9c-4d9b-b400-2162e7b546eb.lovable.app-1780722879107.png" },
     ],
     links: [
       {
@@ -117,7 +121,6 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useApplyBranding();
-  useBrandingSync();
 
   return (
     <QueryClientProvider client={queryClient}>
