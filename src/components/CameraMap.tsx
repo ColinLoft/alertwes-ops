@@ -267,10 +267,14 @@ export function CameraMap() {
       <header className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-3 p-3 sm:p-4">
         <div className="pointer-events-auto flex flex-col items-start gap-2">
           <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-card/40 px-3 py-2 backdrop-blur-xl">
-            <Flame className="h-5 w-5 text-primary" />
+            {settings.logoDataUrl ? (
+              <img src={settings.logoDataUrl} alt="Logo" className="h-6 w-6 rounded object-contain" />
+            ) : (
+              <Flame className="h-5 w-5 text-primary" />
+            )}
             <div className="leading-tight">
               <div className="text-sm font-bold tracking-wide">
-                ALERT<span className="text-primary">West</span>
+                {settings.brandName || "ALERTWest"}
               </div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
                 Wildfire Camera Network
