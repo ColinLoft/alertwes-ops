@@ -70,6 +70,11 @@ export function CameraMap() {
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [view, setView] = useState<"map" | "list">("map");
+  const [livePlanes, setLivePlanes] = useState<Plane[]>([]);
+  const [planeFlyTarget, setPlaneFlyTarget] = useState<[number, number] | null>(null);
+
+  // Receive the latest plane snapshot from PlanesLayer so search can find them.
+  useEffect(() => subscribePlanes(setLivePlanes), []);
 
   // Apply filters from settings (state / county / radius)
   const visibleCameras = useMemo(() => {
