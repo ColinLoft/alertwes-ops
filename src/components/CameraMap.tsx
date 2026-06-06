@@ -338,25 +338,50 @@ export function CameraMap() {
                 No matches
               </div>
             )}
-            {filtered.map((c) => {
-              const s = getStatus(c);
+            {filtered.map((hit) => {
+              if (hit.kind === "camera") {
+                const c = hit.camera;
+                const s = getStatus(c);
+                return (
+                  <button
+                    key={`cam-${c.site.id}`}
+                    onClick={() => {
+                      setSelectedId(c.site.id);
+                      setShowSearch(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-white/5"
+                  >
+                    <VideoIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: s.color }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{c.name}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {[c.site.county, c.site.state].filter(Boolean).join(", ") || "—"} · Camera
+                      </span>
+                    </span>
+                  </button>
+                );
+              }
+              const p = hit.plane;
               return (
                 <button
-                  key={c.site.id}
+                  key={`plane-${p.icao24}`}
                   onClick={() => {
-                    setSelectedId(c.site.id);
+                    setPlaneFlyTarget([p.lat, p.lng]);
                     setShowSearch(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm hover:bg-white/5"
                 >
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ background: s.color, boxShadow: `0 0 6px ${s.color}` }}
-                  />
+                  <PlaneIcon className="h-3.5 w-3.5 shrink-0 text-amber-300" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{c.name}</span>
+                    <span className="block truncate font-medium">
+                      {p.callsign || p.icao24.toUpperCase()}
+                    </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {[c.site.county, c.site.state].filter(Boolean).join(", ") || "—"}
+                      {p.originCountry || "Unknown"} · Aircraft{p.onGround ? " · on ground" : ""}
                     </span>
                   </span>
                 </button>
