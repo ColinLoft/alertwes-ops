@@ -94,6 +94,42 @@ export function CameraMap() {
     });
   }, [cameras, settings.states, settings.counties, settings.radius]);
 
+  // Bounding boxes derived from camera data for plane state/county filters.
+  const planeBounds = useMemo(() => {
+    const pickStates = new Set(settings.planesStates.map((s) => s.toLowerCase()));
+    const pickCounties = new Set(settings.planesCounties.map((s) => s.toLowerCase()));
+    if (!pickStates.size && !pickCounties.size) return null;
+    const acc = new Map<string, { lamin: number; lomin: number; lamax: number; lomax: number }>();
+    for (const c of cameras) {
+      const lat = Number(c.site.latitude);
+      const lng = Number(c.site.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const state = (c.site.state ?? "").toLowerCase();
+      const county = (c.site.county ?? "").toLowerCase();
+      const keys: string[] = [];
+      if (pickStates.has(state)) keys.push(`s:${state}`);
+      if (pickCounties.has(county)) keys.push(`c:${county}`);
+      for (const k of keys) {
+        const b = acc.get(k);
+        if (!b) acc.set(k, { lamin: lat, lomin: lng, lamax: lat, lomax: lng });
+        else {
+          b.lamin = Math.min(b.lamin, lat);
+          b.lomin = Math.min(b.lomin, lng);
+          b.lamax = Math.max(b.lamax, lat);
+          b.lomax = Math.max(b.lomax, lng);
+        }
+      }
+    }
+    // pad each bbox ~0.25° so planes near borders are included
+    const out = [...acc.values()].map((b) => ({
+      lamin: b.lamin - 0.25,
+      lomin: b.lomin - 0.25,
+      lamax: b.lamax + 0.25,
+      lomax: b.lomax + 0.25,
+    }));
+    return out.length ? out : null;
+  }, [cameras, settings.planesStates, settings.planesCounties]);
+
   // Auto-open nearest camera when radius is set
   useEffect(() => {
     if (!settings.autoOpenNearest || !settings.radius || selectedId) return;
