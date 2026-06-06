@@ -52,12 +52,21 @@ function contactBadge(unixSec: number): ContactBadge {
   return { label: `Outdated · ${Math.round(diff / 60)}m`, cls: "bg-rose-500/25 text-rose-300 border-rose-500/40" };
 }
 
+export interface PlaneBounds {
+  lamin: number;
+  lomin: number;
+  lamax: number;
+  lomax: number;
+}
+
 export function PlanesLayer({
   refreshSeconds = 20,
   radius = null,
+  bounds = null,
 }: {
   refreshSeconds?: number;
   radius?: RadiusFilter | null;
+  bounds?: PlaneBounds[] | null;
 }) {
   const map = useMap();
   const [bbox, setBbox] = useState<Bbox>(() => getBbox(map));
@@ -90,9 +99,19 @@ export function PlanesLayer({
   });
 
   const all: Plane[] = data ?? [];
-  const planes = radius
-    ? all.filter((p) => haversineMi({ lat: p.lat, lng: p.lng }, { lat: radius.lat, lng: radius.lng }) <= radius.km)
-    : all;
+  let planes = all;
+  if (radius) {
+    planes = planes.filter(
+      (p) => haversineMi({ lat: p.lat, lng: p.lng }, { lat: radius.lat, lng: radius.lng }) <= radius.km,
+    );
+  }
+  if (bounds && bounds.length) {
+    planes = planes.filter((p) =>
+      bounds.some(
+        (b) => p.lat >= b.lamin && p.lat <= b.lamax && p.lng >= b.lomin && p.lng <= b.lomax,
+      ),
+    );
+  }
 
   // Publish currently-rendered planes so the search box (and other UI) can use them.
   useEffect(() => {

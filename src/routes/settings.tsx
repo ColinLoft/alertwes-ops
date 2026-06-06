@@ -27,20 +27,40 @@ function SettingsPage() {
     staleTime: 5 * 60_000,
   });
 
-  const { states, counties } = useMemo(() => {
+  const states = useMemo(() => {
     const s = new Set<string>();
+    for (const cam of cameras) if (cam.site.state) s.add(cam.site.state);
+    return [...s].sort();
+  }, [cameras]);
+
+  // Counties for camera filter — limited to selected camera states (or all if none picked).
+  const counties = useMemo(() => {
+    const allowed = new Set(settings.states.map((x) => x.toLowerCase()));
     const c = new Set<string>();
     for (const cam of cameras) {
-      if (cam.site.state) s.add(cam.site.state);
-      if (cam.site.county) c.add(cam.site.county);
+      if (!cam.site.county) continue;
+      if (allowed.size && !(cam.site.state && allowed.has(cam.site.state.toLowerCase()))) continue;
+      c.add(cam.site.county);
     }
-    return { states: [...s].sort(), counties: [...c].sort() };
-  }, [cameras]);
+    return [...c].sort();
+  }, [cameras, settings.states]);
+
+  // Counties for plane filter — limited to selected plane states (or all if none picked).
+  const planeCounties = useMemo(() => {
+    const allowed = new Set(settings.planesStates.map((x) => x.toLowerCase()));
+    const c = new Set<string>();
+    for (const cam of cameras) {
+      if (!cam.site.county) continue;
+      if (allowed.size && !(cam.site.state && allowed.has(cam.site.state.toLowerCase()))) continue;
+      c.add(cam.site.county);
+    }
+    return [...c].sort();
+  }, [cameras, settings.planesStates]);
 
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setSettings((p) => ({ ...p, [key]: value }));
 
-  const toggleArr = (key: "states" | "counties", value: string) => {
+  const toggleArr = (key: "states" | "counties" | "planesStates" | "planesCounties", value: string) => {
     setSettings((p) => {
       const has = p[key].includes(value);
       return { ...p, [key]: has ? p[key].filter((v) => v !== value) : [...p[key], value] };
@@ -194,6 +214,34 @@ function SettingsPage() {
           <RadiusEditor settings={settings} setSettings={setSettings} />
         </Section>
 
+        {/* Planes states */}
+        <Section
+          title={`Planes — states (${settings.planesStates.length || "all"})`}
+          description="Only show aircraft over selected states. Combine with counties/radius for tighter scope."
+        >
+          <ChipGrid
+            options={states}
+            selected={settings.planesStates}
+            onToggle={(v) => toggleArr("planesStates", v)}
+            onClear={() => set("planesStates", [])}
+            empty="No state data loaded yet."
+          />
+        </Section>
+
+        {/* Planes counties */}
+        <Section
+          title={`Planes — counties (${settings.planesCounties.length || "all"})`}
+          description="Counties listed here are scoped to the plane states above."
+        >
+          <ChipGrid
+            options={planeCounties}
+            selected={settings.planesCounties}
+            onToggle={(v) => toggleArr("planesCounties", v)}
+            onClear={() => set("planesCounties", [])}
+            empty="Pick a plane state first to see its counties."
+          />
+        </Section>
+
         {/* States */}
         <Section
           title={`States (${settings.states.length || "all"})`}
@@ -211,7 +259,7 @@ function SettingsPage() {
         {/* Counties */}
         <Section
           title={`Counties (${settings.counties.length || "all"})`}
-          description="Narrow further by county. Leave empty to show every county in the chosen states."
+          description="Counties listed here are scoped to the camera states above."
         >
           <ChipGrid
             options={counties}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer, Polyline, Circle, ScaleControl, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polyline, Circle, useMap } from "react-leaflet";
 import { Link } from "@tanstack/react-router";
 import "leaflet/dist/leaflet.css";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +9,7 @@ import { CameraList } from "./CameraList";
 import { PlanesLayer } from "./PlanesLayer";
 import { CameraMarkersLayer } from "./CameraMarkersLayer";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, Plane as PlaneIcon, RefreshCw, Search, Settings as SettingsIcon, Video as VideoIcon, WifiOff, X } from "lucide-react";
+import { AlertTriangle, Flame, List as ListIcon, Map as MapIcon, Plane as PlaneIcon, RefreshCw, Search, Settings as SettingsIcon, Video as VideoIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
 import { useSettings, useSettingsUrlSync } from "@/lib/settings";
@@ -94,6 +94,42 @@ export function CameraMap() {
     });
   }, [cameras, settings.states, settings.counties, settings.radius]);
 
+  // Bounding boxes derived from camera data for plane state/county filters.
+  const planeBounds = useMemo(() => {
+    const pickStates = new Set(settings.planesStates.map((s) => s.toLowerCase()));
+    const pickCounties = new Set(settings.planesCounties.map((s) => s.toLowerCase()));
+    if (!pickStates.size && !pickCounties.size) return null;
+    const acc = new Map<string, { lamin: number; lomin: number; lamax: number; lomax: number }>();
+    for (const c of cameras) {
+      const lat = Number(c.site.latitude);
+      const lng = Number(c.site.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const state = (c.site.state ?? "").toLowerCase();
+      const county = (c.site.county ?? "").toLowerCase();
+      const keys: string[] = [];
+      if (pickStates.has(state)) keys.push(`s:${state}`);
+      if (pickCounties.has(county)) keys.push(`c:${county}`);
+      for (const k of keys) {
+        const b = acc.get(k);
+        if (!b) acc.set(k, { lamin: lat, lomin: lng, lamax: lat, lomax: lng });
+        else {
+          b.lamin = Math.min(b.lamin, lat);
+          b.lomin = Math.min(b.lomin, lng);
+          b.lamax = Math.max(b.lamax, lat);
+          b.lomax = Math.max(b.lomax, lng);
+        }
+      }
+    }
+    // pad each bbox ~0.25° so planes near borders are included
+    const out = [...acc.values()].map((b) => ({
+      lamin: b.lamin - 0.25,
+      lomin: b.lomin - 0.25,
+      lamax: b.lamax + 0.25,
+      lomax: b.lomax + 0.25,
+    }));
+    return out.length ? out : null;
+  }, [cameras, settings.planesStates, settings.planesCounties]);
+
   // Auto-open nearest camera when radius is set
   useEffect(() => {
     if (!settings.autoOpenNearest || !settings.radius || selectedId) return;
@@ -170,8 +206,6 @@ export function CameraMap() {
     return [...cams, ...planes].slice(0, 30);
   }, [visibleCameras, livePlanes, query]);
 
-  const [showHelp, setShowHelp] = useState(false);
-
   // Global keyboard shortcuts
   useGlobalShortcuts((e) => {
     const key = e.key;
@@ -184,17 +218,11 @@ export function CameraMap() {
     }
 
     if (key === "Escape") {
-      if (showHelp) { setShowHelp(false); return; }
       if (showSearch) { setShowSearch(false); setQuery(""); return; }
       if (selectedId) { setSelectedId(null); return; }
       return;
     }
 
-    if (key === "?") {
-      e.preventDefault();
-      setShowHelp((v) => !v);
-      return;
-    }
 
     if (key === "r" || key === "R") {
       e.preventDefault();
@@ -435,9 +463,9 @@ export function CameraMap() {
               className={BASEMAPS[settings.basemap].labelsClassName}
             />
           )}
-          <ScaleControl position="bottomleft" imperial metric />
           <FlyTo target={flyTarget} />
           <FlyTo target={planeFlyTarget} />
+
 
 
         {settings.radius && (
@@ -469,7 +497,11 @@ export function CameraMap() {
         )}
 
         {settings.showPlanes && (
-          <PlanesLayer refreshSeconds={settings.planesRefreshSeconds} radius={settings.planesRadius} />
+          <PlanesLayer
+            refreshSeconds={settings.planesRefreshSeconds}
+            radius={settings.planesRadius}
+            bounds={planeBounds}
+          />
         )}
         </MapContainer>
       )}
@@ -530,69 +562,10 @@ export function CameraMap() {
         history={selected ? history[selected.site.id] ?? [] : []}
       />
 
-      {/* Footer ribbon + keyboard help */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1000] flex items-center justify-center gap-2 pb-3">
-        <button
-          onClick={() => setShowHelp((v) => !v)}
-          aria-label="Show keyboard shortcuts"
-          aria-expanded={showHelp}
-          className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-white/10 bg-card/35 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground backdrop-blur-xl transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          <Keyboard className="h-3 w-3" aria-hidden="true" />
-          Shortcuts
-        </button>
-        <div className="pointer-events-auto rounded-full border border-white/10 bg-card/35 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground backdrop-blur-xl">
-          ALERTWest · Public API
-        </div>
-      </div>
-
-      {showHelp && (
-        <div
-          role="dialog"
-          aria-label="Keyboard shortcuts"
-          className="absolute inset-0 z-[1100] flex items-center justify-center bg-background/70 p-4 backdrop-blur-sm"
-          onClick={() => setShowHelp(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-2xl"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Keyboard shortcuts</h2>
-              <button
-                onClick={() => setShowHelp(false)}
-                aria-label="Close shortcuts"
-                className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <dl className="space-y-1.5 text-xs">
-              {[
-                ["/ or ⌘K", "Open search"],
-                ["J / →", "Next camera"],
-                ["K / ←", "Previous camera"],
-                ["Space", "Play / pause timeline"],
-                [". / ,", "Next / previous frame"],
-                ["L", "Return to live frame"],
-                ["R", "Refresh data"],
-                ["Esc", "Close panel / search"],
-                ["?", "Toggle this help"],
-              ].map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between gap-3">
-                  <kbd className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-foreground">
-                    {k}
-                  </kbd>
-                  <span className="text-muted-foreground">{v}</span>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+
 
 function Legend({ color }: { color: string }) {
   return (

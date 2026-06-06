@@ -229,27 +229,26 @@
 }
 .aw-plane svg { display: block; }
 
-/* Camera cluster pin (when multiple cameras overlap) */
-.aw-cluster {
-  --cc: #f4a261;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
+/* Overlap badge on an arrow marker */
+.aw-marker { position: relative; }
+.aw-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
   border-radius: 9999px;
-  background: color-mix(in oklab, var(--cc) 25%, oklch(0.15 0.02 250 / 0.85));
-  border: 1.5px solid color-mix(in oklab, var(--cc) 80%, transparent);
+  background: oklch(0.18 0.02 250 / 0.85);
+  border: 1px solid oklch(1 0 0 / 0.18);
   color: var(--color-foreground);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 12px oklch(0 0 0 / 0.4);
-  transition: transform 0.15s ease;
-  cursor: pointer;
+  line-height: 14px;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 6px oklch(0 0 0 / 0.4);
 }
-.aw-cluster:hover { transform: scale(1.1); }
 
 /* Transparent Leaflet popups */
 .leaflet-popup-content-wrapper {
