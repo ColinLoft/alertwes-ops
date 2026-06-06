@@ -229,4 +229,45 @@
 }
 .aw-plane svg { display: block; }
 
+/* Camera cluster pin (when multiple cameras overlap) */
+.aw-cluster {
+  --cc: #f4a261;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--cc) 25%, oklch(0.15 0.02 250 / 0.85));
+  border: 1.5px solid color-mix(in oklab, var(--cc) 80%, transparent);
+  color: var(--color-foreground);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.4);
+  transition: transform 0.15s ease;
+  cursor: pointer;
+}
+.aw-cluster:hover { transform: scale(1.1); }
+
+/* Transparent Leaflet popups */
+.leaflet-popup-content-wrapper {
+  background: oklch(0.18 0.02 250 / 0.55) !important;
+  color: var(--color-foreground) !important;
+  border: 1px solid oklch(1 0 0 / 0.08) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 28px oklch(0 0 0 / 0.45) !important;
+}
+.leaflet-popup-tip {
+  background: oklch(0.18 0.02 250 / 0.55) !important;
+  border: 1px solid oklch(1 0 0 / 0.08) !important;
+  backdrop-filter: blur(14px);
+}
+.leaflet-popup-close-button {
+  color: var(--color-muted-foreground) !important;
+}
+.leaflet-popup-content { margin: 10px 12px !important; }
+
 
