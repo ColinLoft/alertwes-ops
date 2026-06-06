@@ -14,15 +14,23 @@ import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
 import { useSettings } from "@/lib/settings";
 import { BASEMAPS } from "@/lib/basemaps";
-import { haversineKm } from "@/lib/geo";
+import { haversineKm, bearingDeg } from "@/lib/geo";
 
-function makeIcon(color: string, active: boolean, pulse: boolean, label: string) {
+function makeIcon(color: string, active: boolean, pulse: boolean, label: string, headingDeg: number | null) {
   const safe = label.replace(/"/g, "&quot;");
+  const rot = headingDeg ?? 0;
+  // Camera arrow: chevron/arrowhead pointing "up" (north). Rotate via inline transform.
+  const svg = `
+    <svg viewBox="0 0 24 24" width="22" height="22" style="transform: rotate(${rot}deg); transform-origin: 50% 50%;" aria-hidden="true">
+      <path fill="currentColor" stroke="rgba(0,0,0,0.55)" stroke-width="0.8" stroke-linejoin="round"
+        d="M12 2.2l8.4 16.6c.35.7-.4 1.46-1.12 1.13L12 16.6 4.72 19.93c-.73.33-1.47-.43-1.12-1.13L12 2.2z"/>
+      <circle cx="12" cy="14.5" r="2.3" fill="rgba(0,0,0,0.45)"/>
+    </svg>`;
   return L.divIcon({
     className: "",
-    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}" role="button" tabindex="0" aria-label="${safe}"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}" role="button" tabindex="0" aria-label="${safe}">${svg}</div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
   });
 }
 
@@ -402,11 +410,17 @@ export function CameraMap() {
           const active = selectedId === c.site.id;
           const s = getStatus(c);
           const label = `${c.name}${c.site.county || c.site.state ? ` — ${[c.site.county, c.site.state].filter(Boolean).join(", ")}` : ""} (${s.label})`;
+          // Compute heading from the camera's view line (start → end), if any.
+          const vl = parseViewLine(c.view.line);
+          const heading =
+            vl && vl.length >= 2
+              ? bearingDeg({ lat: vl[0][0], lng: vl[0][1] }, { lat: vl[vl.length - 1][0], lng: vl[vl.length - 1][1] })
+              : null;
           return (
             <Marker
               key={c.site.id}
               position={[lat, lng]}
-              icon={makeIcon(s.color, active, settings.showMarkerPulse && s.status === "online", label)}
+              icon={makeIcon(s.color, active, settings.showMarkerPulse && s.status === "online", label, heading)}
               keyboard
               alt={label}
               title={label}
@@ -432,7 +446,7 @@ export function CameraMap() {
         )}
 
         {settings.showPlanes && (
-          <PlanesLayer refreshSeconds={settings.planesRefreshSeconds} />
+          <PlanesLayer refreshSeconds={settings.planesRefreshSeconds} radius={settings.planesRadius} />
         )}
         </MapContainer>
       )}

@@ -173,6 +173,19 @@ function SettingsPage() {
           </Row>
         </Section>
 
+        {/* Planes radius (independent from cameras) */}
+        <Section
+          title="Planes radius from address"
+          description="Optional — only show aircraft within a distance of a place. Independent of the camera radius."
+        >
+          <RadiusEditor
+            settings={settings}
+            setSettings={setSettings}
+            field="planesRadius"
+            placeholder="Airport, city, or address for aircraft"
+          />
+        </Section>
+
         {/* Radius */}
         <Section
           title="Radius from address"
@@ -391,12 +404,17 @@ function ChipGrid({
 function RadiusEditor({
   settings,
   setSettings,
+  field = "radius",
+  placeholder = "Address, city, or place name",
 }: {
   settings: Settings;
   setSettings: (s: Settings | ((p: Settings) => Settings)) => void;
+  field?: "radius" | "planesRadius";
+  placeholder?: string;
 }) {
-  const [address, setAddress] = useState(settings.radius?.address ?? "");
-  const [km, setKm] = useState(settings.radius?.km ?? 50);
+  const current = settings[field];
+  const [address, setAddress] = useState(current?.address ?? "");
+  const [km, setKm] = useState(current?.km ?? 50);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "notfound">("idle");
 
   const apply = async () => {
@@ -410,7 +428,7 @@ function RadiusEditor({
       }
       setSettings((p) => ({
         ...p,
-        radius: { address: result.display_name, lat: result.lat, lng: result.lng, km },
+        [field]: { address: result.display_name, lat: result.lat, lng: result.lng, km },
       }));
       setAddress(result.display_name);
       setStatus("idle");
@@ -429,7 +447,7 @@ function RadiusEditor({
       (pos) => {
         setSettings((p) => ({
           ...p,
-          radius: { address: "My current location", lat: pos.coords.latitude, lng: pos.coords.longitude, km },
+          [field]: { address: "My current location", lat: pos.coords.latitude, lng: pos.coords.longitude, km },
         }));
         setAddress("My current location");
         setStatus("idle");
@@ -454,7 +472,7 @@ function RadiusEditor({
                 apply();
               }
             }}
-            placeholder="Address, city, or place name"
+            placeholder={placeholder}
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </label>
@@ -500,17 +518,16 @@ function RadiusEditor({
         <div className="text-xs text-destructive">Lookup failed. Check your connection or try again.</div>
       )}
 
-      {settings.radius && (
+      {current && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-background p-3 text-xs">
           <div className="min-w-0 flex-1">
-            <div className="truncate font-medium text-foreground">{settings.radius.address}</div>
+            <div className="truncate font-medium text-foreground">{current.address}</div>
             <div className="text-muted-foreground">
-              {settings.radius.lat.toFixed(4)}, {settings.radius.lng.toFixed(4)} · within{" "}
-              {settings.radius.km} km
+              {current.lat.toFixed(4)}, {current.lng.toFixed(4)} · within {current.km} km
             </div>
           </div>
           <button
-            onClick={() => setSettings((p) => ({ ...p, radius: null }))}
+            onClick={() => setSettings((p) => ({ ...p, [field]: null }))}
             className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-muted-foreground hover:text-foreground"
           >
             <Trash2 className="h-3 w-3" /> Remove
