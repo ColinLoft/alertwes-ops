@@ -39,6 +39,12 @@ export interface Settings {
   planesRadius: RadiusFilter | null;
   planesStates: string[];
   planesCounties: string[];
+
+  // Branding
+  logoDataUrl: string | null;
+  brandName: string;
+  primaryColor: string; // any CSS color (hex preferred)
+  accentColor: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -58,6 +64,10 @@ export const DEFAULT_SETTINGS: Settings = {
   planesRadius: null,
   planesStates: [],
   planesCounties: [],
+  logoDataUrl: null,
+  brandName: "ALERTWest",
+  primaryColor: "#f4a261",
+  accentColor: "#f4a261",
 };
 
 const KEY = "aw.settings.v1";
