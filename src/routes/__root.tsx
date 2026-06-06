@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { useApplyBranding } from "../lib/branding";
+import { useApplyBranding, useBrandingSync } from "../lib/branding";
 
 function NotFoundComponent() {
   return (
@@ -117,6 +117,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useApplyBranding();
+  useBrandingSync();
 
   return (
     <QueryClientProvider client={queryClient}>
