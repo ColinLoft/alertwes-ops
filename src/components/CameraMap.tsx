@@ -406,40 +406,12 @@ export function CameraMap() {
           />
         )}
 
-        {visibleCameras.map((c) => {
-          const lat = Number(c.site.latitude);
-          const lng = Number(c.site.longitude);
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-          const active = selectedId === c.site.id;
-          const s = getStatus(c);
-          const label = `${c.name}${c.site.county || c.site.state ? ` — ${[c.site.county, c.site.state].filter(Boolean).join(", ")}` : ""} (${s.label})`;
-          // Compute heading from the camera's view line (start → end), if any.
-          const vl = parseViewLine(c.view.line);
-          const heading =
-            vl && vl.length >= 2
-              ? bearingDeg({ lat: vl[0][0], lng: vl[0][1] }, { lat: vl[vl.length - 1][0], lng: vl[vl.length - 1][1] })
-              : null;
-          return (
-            <Marker
-              key={c.site.id}
-              position={[lat, lng]}
-              icon={makeIcon(s.color, active, settings.showMarkerPulse && s.status === "online", label, heading)}
-              keyboard
-              alt={label}
-              title={label}
-              eventHandlers={{
-                click: () => setSelectedId(c.site.id),
-                keydown: (ev) => {
-                  const oe = (ev as unknown as { originalEvent: KeyboardEvent }).originalEvent;
-                  if (oe && (oe.key === "Enter" || oe.key === " ")) {
-                    oe.preventDefault();
-                    setSelectedId(c.site.id);
-                  }
-                },
-              }}
-            />
-          );
-        })}
+        <CameraMarkersLayer
+          cameras={visibleCameras}
+          selectedId={selectedId}
+          onSelect={(id) => setSelectedId(id)}
+          showPulse={settings.showMarkerPulse}
+        />
 
         {settings.showViewLines && viewLine && (
           <Polyline
