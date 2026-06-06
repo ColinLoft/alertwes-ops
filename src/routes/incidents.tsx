@@ -269,8 +269,9 @@ function IncidentDetail({
   incident: IncidentRow;
   onClose: () => void;
   onStatusChange: (s: IncidentStatus) => void;
-  windFn: ReturnType<typeof useServerFn<typeof getWindAtPoint>>;
+  windFn: (args: { data: { lat: number; lng: number } }) => Promise<{ obs: any; error?: string }>;
 }) {
+
   const { data: events = [] } = useQuery({
     queryKey: ["incident_events", incident.id],
     queryFn: () => fetchIncidentEvents(incident.id),
