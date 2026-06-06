@@ -137,10 +137,18 @@ export function CameraMap() {
     [selected],
   );
 
-  const viewLine = useMemo(
-    () => (selected ? parseViewLine(selected.view.line) : null),
-    [selected],
-  );
+  // Extend the camera's view line to the realistic line-of-sight distance
+  // (~22 miles, similar to ALERTWest's typical visible horizon from a ridgeline).
+  const viewLine = useMemo(() => {
+    if (!selected) return null;
+    const parsed = parseViewLine(selected.view.line);
+    if (!parsed || parsed.length < 2) return parsed;
+    const start = { lat: parsed[0][0], lng: parsed[0][1] };
+    const end = { lat: parsed[parsed.length - 1][0], lng: parsed[parsed.length - 1][1] };
+    const heading = bearingDeg(start, end);
+    const far = destinationPointMi(start, heading, 22);
+    return [parsed[0], [far.lat, far.lng]] as [number, number][];
+  }, [selected]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return [] as Camera[];
