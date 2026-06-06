@@ -9,19 +9,26 @@ import type { RadiusFilter } from "@/lib/settings";
 
 const PLANE_HIT = 44;
 
+const iconCache = new Map<string, L.DivIcon>();
 function planeIcon(headingDeg: number, onGround: boolean) {
+  const rounded = Math.round(headingDeg / 5) * 5;
+  const key = `${rounded}|${onGround ? 1 : 0}`;
+  const cached = iconCache.get(key);
+  if (cached) return cached;
   const color = onGround ? "#fde68a" : "#facc15";
   const svg = `
     <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true">
       <path fill="currentColor" stroke="rgba(0,0,0,0.55)" stroke-width="0.8" stroke-linejoin="round"
         d="M16 1.5c-1.05 0-1.7 1.1-1.85 2.4l-.35 6.2L2 17.2v2.4l11.8-3 .15 6.1-3.4 2.2v1.9l5.45-1.4 5.45 1.4v-1.9l-3.4-2.2.15-6.1L30 19.6v-2.4l-11.8-6.6-.35-6.2C17.7 2.6 17.05 1.5 16 1.5z"/>
     </svg>`;
-  return L.divIcon({
+  const icon = L.divIcon({
     className: "",
-    html: `<div class="aw-hit"><div class="aw-plane" style="--pc:${color}; transform: rotate(${headingDeg}deg)" role="img" aria-label="Aircraft heading ${Math.round(headingDeg)} degrees">${svg}</div></div>`,
+    html: `<div class="aw-hit"><div class="aw-plane" style="--pc:${color}; transform: rotate(${rounded}deg)" role="img" aria-label="Aircraft">${svg}</div></div>`,
     iconSize: [PLANE_HIT, PLANE_HIT],
     iconAnchor: [PLANE_HIT / 2, PLANE_HIT / 2],
   });
+  iconCache.set(key, icon);
+  return icon;
 }
 
 function getBbox(map: L.Map): Bbox {
