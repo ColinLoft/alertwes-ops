@@ -437,6 +437,7 @@ export function CameraMap() {
           )}
           <ScaleControl position="bottomleft" imperial metric />
           <FlyTo target={flyTarget} />
+          <FlyTo target={planeFlyTarget} />
 
 
         {settings.radius && (
