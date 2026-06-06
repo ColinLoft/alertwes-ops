@@ -214,6 +214,34 @@ function SettingsPage() {
           <RadiusEditor settings={settings} setSettings={setSettings} />
         </Section>
 
+        {/* Planes states */}
+        <Section
+          title={`Planes — states (${settings.planesStates.length || "all"})`}
+          description="Only show aircraft over selected states. Combine with counties/radius for tighter scope."
+        >
+          <ChipGrid
+            options={states}
+            selected={settings.planesStates}
+            onToggle={(v) => toggleArr("planesStates", v)}
+            onClear={() => set("planesStates", [])}
+            empty="No state data loaded yet."
+          />
+        </Section>
+
+        {/* Planes counties */}
+        <Section
+          title={`Planes — counties (${settings.planesCounties.length || "all"})`}
+          description="Counties listed here are scoped to the plane states above."
+        >
+          <ChipGrid
+            options={planeCounties}
+            selected={settings.planesCounties}
+            onToggle={(v) => toggleArr("planesCounties", v)}
+            onClear={() => set("planesCounties", [])}
+            empty="Pick a plane state first to see its counties."
+          />
+        </Section>
+
         {/* States */}
         <Section
           title={`States (${settings.states.length || "all"})`}
@@ -231,7 +259,7 @@ function SettingsPage() {
         {/* Counties */}
         <Section
           title={`Counties (${settings.counties.length || "all"})`}
-          description="Narrow further by county. Leave empty to show every county in the chosen states."
+          description="Counties listed here are scoped to the camera states above."
         >
           <ChipGrid
             options={counties}
