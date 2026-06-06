@@ -12,9 +12,9 @@ import { useCameraHistory } from "@/hooks/useCameraHistory";
 import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
-import { useSettings } from "@/lib/settings";
+import { useSettings, useSettingsUrlSync } from "@/lib/settings";
 import { BASEMAPS } from "@/lib/basemaps";
-import { haversineKm, bearingDeg } from "@/lib/geo";
+import { haversineMi, bearingDeg, destinationPointMi } from "@/lib/geo";
 
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string, headingDeg: number | null) {
   const safe = label.replace(/"/g, "&quot;");
