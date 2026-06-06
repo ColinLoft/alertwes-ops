@@ -118,21 +118,23 @@ function AppSidebar() {
 }
 
 function ClockUTC() {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
+    setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-  const z = now.toISOString().slice(11, 19);
-  const local = now.toLocaleTimeString([], { hour12: false });
+  const z = now ? now.toISOString().slice(11, 19) : "--:--:--";
+  const local = now ? now.toLocaleTimeString([], { hour12: false }) : "--:--:--";
   return (
-    <div className="flex items-center gap-3 font-mono text-[11px] text-muted-foreground">
-      <span><span className="text-foreground/80">{local}</span> LOCAL</span>
+    <div className="flex items-center gap-3 font-mono text-[11px] text-muted-foreground" suppressHydrationWarning>
+      <span><span className="text-foreground/80" suppressHydrationWarning>{local}</span> LOCAL</span>
       <span className="opacity-50">|</span>
-      <span><span className="text-foreground/80">{z}</span>Z</span>
+      <span><span className="text-foreground/80" suppressHydrationWarning>{z}</span>Z</span>
     </div>
   );
 }
+
 
 function HealthChip({ label, ok = true }: { label: string; ok?: boolean }) {
   return (
