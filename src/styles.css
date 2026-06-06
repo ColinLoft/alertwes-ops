@@ -226,7 +226,6 @@
 
 .aw-plane {
   color: var(--pc, #facc15);
-  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--pc) 85%, transparent));
   transform-origin: center;
   transition: transform 0.4s linear;
 }
