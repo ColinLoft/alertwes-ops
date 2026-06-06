@@ -19,8 +19,6 @@ import { subscribePlanes } from "@/lib/planes-bus";
 import type { Plane } from "@/lib/opensky";
 
 function FlyTo({ target }: { target: [number, number] | null }) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { useMap } = require("react-leaflet") as typeof import("react-leaflet");
   const map = useMap();
   useEffect(() => {
     if (target) map.flyTo(target, Math.max(map.getZoom(), 11), { duration: 0.8 });
