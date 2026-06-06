@@ -206,8 +206,6 @@ export function CameraMap() {
     return [...cams, ...planes].slice(0, 30);
   }, [visibleCameras, livePlanes, query]);
 
-  const [showHelp, setShowHelp] = useState(false);
-
   // Global keyboard shortcuts
   useGlobalShortcuts((e) => {
     const key = e.key;
@@ -220,17 +218,11 @@ export function CameraMap() {
     }
 
     if (key === "Escape") {
-      if (showHelp) { setShowHelp(false); return; }
       if (showSearch) { setShowSearch(false); setQuery(""); return; }
       if (selectedId) { setSelectedId(null); return; }
       return;
     }
 
-    if (key === "?") {
-      e.preventDefault();
-      setShowHelp((v) => !v);
-      return;
-    }
 
     if (key === "r" || key === "R") {
       e.preventDefault();
