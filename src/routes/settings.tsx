@@ -173,6 +173,19 @@ function SettingsPage() {
           </Row>
         </Section>
 
+        {/* Planes radius (independent from cameras) */}
+        <Section
+          title="Planes radius from address"
+          description="Optional — only show aircraft within a distance of a place. Independent of the camera radius."
+        >
+          <RadiusEditor
+            settings={settings}
+            setSettings={setSettings}
+            field="planesRadius"
+            placeholder="Airport, city, or address for aircraft"
+          />
+        </Section>
+
         {/* Radius */}
         <Section
           title="Radius from address"
