@@ -10,8 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as IncidentsRouteImport } from './routes/incidents'
+import { Route as FleetRouteImport } from './routes/fleet'
+import { Route as DisasterRouteImport } from './routes/disaster'
+import { Route as BasesRouteImport } from './routes/bases'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OpsPersonnelRouteImport } from './routes/ops.personnel'
+import { Route as OpsMaintenanceRouteImport } from './routes/ops.maintenance'
 import { Route as ApiPlanesRouteImport } from './routes/api/planes'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -19,14 +26,49 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IncidentsRoute = IncidentsRouteImport.update({
+  id: '/incidents',
+  path: '/incidents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FleetRoute = FleetRouteImport.update({
+  id: '/fleet',
+  path: '/fleet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DisasterRoute = DisasterRouteImport.update({
+  id: '/disaster',
+  path: '/disaster',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BasesRoute = BasesRouteImport.update({
+  id: '/bases',
+  path: '/bases',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsPersonnelRoute = OpsPersonnelRouteImport.update({
+  id: '/ops/personnel',
+  path: '/ops/personnel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OpsMaintenanceRoute = OpsMaintenanceRouteImport.update({
+  id: '/ops/maintenance',
+  path: '/ops/maintenance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPlanesRoute = ApiPlanesRouteImport.update({
@@ -37,36 +79,98 @@ const ApiPlanesRoute = ApiPlanesRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/bases': typeof BasesRoute
+  '/disaster': typeof DisasterRoute
+  '/fleet': typeof FleetRoute
+  '/incidents': typeof IncidentsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
+  '/ops/maintenance': typeof OpsMaintenanceRoute
+  '/ops/personnel': typeof OpsPersonnelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/bases': typeof BasesRoute
+  '/disaster': typeof DisasterRoute
+  '/fleet': typeof FleetRoute
+  '/incidents': typeof IncidentsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
+  '/ops/maintenance': typeof OpsMaintenanceRoute
+  '/ops/personnel': typeof OpsPersonnelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/bases': typeof BasesRoute
+  '/disaster': typeof DisasterRoute
+  '/fleet': typeof FleetRoute
+  '/incidents': typeof IncidentsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
+  '/ops/maintenance': typeof OpsMaintenanceRoute
+  '/ops/personnel': typeof OpsPersonnelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/settings' | '/api/planes'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/bases'
+    | '/disaster'
+    | '/fleet'
+    | '/incidents'
+    | '/settings'
+    | '/api/planes'
+    | '/ops/maintenance'
+    | '/ops/personnel'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/settings' | '/api/planes'
-  id: '__root__' | '/' | '/auth' | '/settings' | '/api/planes'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/bases'
+    | '/disaster'
+    | '/fleet'
+    | '/incidents'
+    | '/settings'
+    | '/api/planes'
+    | '/ops/maintenance'
+    | '/ops/personnel'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/bases'
+    | '/disaster'
+    | '/fleet'
+    | '/incidents'
+    | '/settings'
+    | '/api/planes'
+    | '/ops/maintenance'
+    | '/ops/personnel'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  BasesRoute: typeof BasesRoute
+  DisasterRoute: typeof DisasterRoute
+  FleetRoute: typeof FleetRoute
+  IncidentsRoute: typeof IncidentsRoute
   SettingsRoute: typeof SettingsRoute
   ApiPlanesRoute: typeof ApiPlanesRoute
+  OpsMaintenanceRoute: typeof OpsMaintenanceRoute
+  OpsPersonnelRoute: typeof OpsPersonnelRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -78,6 +182,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/incidents': {
+      id: '/incidents'
+      path: '/incidents'
+      fullPath: '/incidents'
+      preLoaderRoute: typeof IncidentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fleet': {
+      id: '/fleet'
+      path: '/fleet'
+      fullPath: '/fleet'
+      preLoaderRoute: typeof FleetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/disaster': {
+      id: '/disaster'
+      path: '/disaster'
+      fullPath: '/disaster'
+      preLoaderRoute: typeof DisasterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bases': {
+      id: '/bases'
+      path: '/bases'
+      fullPath: '/bases'
+      preLoaderRoute: typeof BasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -85,11 +217,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/personnel': {
+      id: '/ops/personnel'
+      path: '/ops/personnel'
+      fullPath: '/ops/personnel'
+      preLoaderRoute: typeof OpsPersonnelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ops/maintenance': {
+      id: '/ops/maintenance'
+      path: '/ops/maintenance'
+      fullPath: '/ops/maintenance'
+      preLoaderRoute: typeof OpsMaintenanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/planes': {
@@ -104,9 +257,16 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  BasesRoute: BasesRoute,
+  DisasterRoute: DisasterRoute,
+  FleetRoute: FleetRoute,
+  IncidentsRoute: IncidentsRoute,
   SettingsRoute: SettingsRoute,
   ApiPlanesRoute: ApiPlanesRoute,
+  OpsMaintenanceRoute: OpsMaintenanceRoute,
+  OpsPersonnelRoute: OpsPersonnelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

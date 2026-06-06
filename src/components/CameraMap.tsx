@@ -262,7 +262,7 @@ export function CameraMap() {
 
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-background text-foreground">
+    <div className="relative h-full w-full overflow-hidden bg-background text-foreground">
       {/* Header */}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex items-start justify-between gap-3 p-3 sm:p-4">
         <div className="pointer-events-auto flex flex-col items-start gap-2">
