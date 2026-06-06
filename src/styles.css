@@ -280,4 +280,109 @@
 }
 .leaflet-popup-content { margin: 10px 12px !important; }
 
+/* Unified ALERTWest popup */
+.aw-popup { font-size: 12px; line-height: 1.5; color: var(--color-foreground); }
+.aw-popup-eyebrow {
+  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+.aw-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.aw-popup-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid oklch(1 0 0 / 0.15);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.aw-popup-meta {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 1px solid oklch(1 0 0 / 0.08);
+  border-radius: 8px;
+  background: oklch(1 0 0 / 0.04);
+}
+.aw-popup-meta-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+.aw-popup-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 12px;
+  row-gap: 2px;
+  margin-top: 8px;
+}
+.aw-popup-grid dt { color: var(--color-muted-foreground); }
+.aw-popup-grid dd { margin: 0; }
+.aw-popup-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.aw-popup-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid oklch(1 0 0 / 0.12);
+  background: oklch(1 0 0 / 0.05);
+  color: var(--color-foreground) !important;
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none !important;
+  transition: background 0.15s ease;
+}
+.aw-popup-btn:hover { background: oklch(1 0 0 / 0.12); }
+.aw-popup-btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground) !important;
+  border-color: transparent;
+}
+.aw-popup-btn-primary:hover { filter: brightness(1.08); }
+.aw-popup-list {
+  max-height: 256px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.aw-popup-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+.aw-popup-row:hover { background: oklch(1 0 0 / 0.08); }
+.aw-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+
 
