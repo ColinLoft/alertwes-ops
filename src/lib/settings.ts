@@ -7,7 +7,7 @@ export interface RadiusFilter {
   km: number;
 }
 
-export type Basemap = "voyager" | "streets" | "satellite" | "terrain" | "dark" | "topo";
+export type Basemap = "darkTerrain" | "voyager" | "streets" | "satellite" | "terrain" | "dark" | "topo";
 
 export interface Settings {
   // General
@@ -37,7 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showMarkerPulse: true,
   autoOpenNearest: false,
   defaultZoom: 6,
-  basemap: "voyager",
+  basemap: "darkTerrain",
   showLabels: true,
   showPlanes: true,
   planesRefreshSeconds: 20,
@@ -53,7 +53,12 @@ function read(): Settings {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw) as Partial<Settings>;
+    const merged = { ...DEFAULT_SETTINGS, ...parsed };
+    if (!parsed.basemap || parsed.basemap === "voyager" || parsed.basemap === "dark") {
+      merged.basemap = "darkTerrain";
+    }
+    return merged;
   } catch {
     return DEFAULT_SETTINGS;
   }
