@@ -97,7 +97,7 @@ export function CameraMap() {
         const lat = Number(c.site.latitude);
         const lng = Number(c.site.longitude);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
-        const d = haversineKm({ lat, lng }, { lat: settings.radius.lat, lng: settings.radius.lng });
+        const d = haversineMi({ lat, lng }, { lat: settings.radius.lat, lng: settings.radius.lng });
         if (d > settings.radius.km) return false;
       }
       return true;
@@ -114,7 +114,7 @@ export function CameraMap() {
       const lat = Number(c.site.latitude);
       const lng = Number(c.site.longitude);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-      const d = haversineKm(center, { lat, lng });
+      const d = haversineMi(center, { lat, lng });
       if (!best || d < best.d) best = { id: c.site.id, d };
     }
     if (best) setSelectedId(best.id);
