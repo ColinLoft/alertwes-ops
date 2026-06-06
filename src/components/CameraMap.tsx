@@ -18,25 +18,9 @@ import { bearingDeg, destinationPointMi, haversineMi } from "@/lib/geo";
 import { subscribePlanes } from "@/lib/planes-bus";
 import type { Plane } from "@/lib/opensky";
 
-function makeIcon(color: string, active: boolean, pulse: boolean, label: string, headingDeg: number | null) {
-  const safe = label.replace(/"/g, "&quot;");
-  const rot = headingDeg ?? 0;
-  // Camera arrow: chevron/arrowhead pointing "up" (north). Rotate via inline transform.
-  const svg = `
-    <svg viewBox="0 0 24 24" width="22" height="22" style="transform: rotate(${rot}deg); transform-origin: 50% 50%;" aria-hidden="true">
-      <path fill="currentColor" stroke="rgba(0,0,0,0.55)" stroke-width="0.8" stroke-linejoin="round"
-        d="M12 2.2l8.4 16.6c.35.7-.4 1.46-1.12 1.13L12 16.6 4.72 19.93c-.73.33-1.47-.43-1.12-1.13L12 2.2z"/>
-      <circle cx="12" cy="14.5" r="2.3" fill="rgba(0,0,0,0.45)"/>
-    </svg>`;
-  return L.divIcon({
-    className: "",
-    html: `<div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}" role="button" tabindex="0" aria-label="${safe}">${svg}</div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-  });
-}
-
 function FlyTo({ target }: { target: [number, number] | null }) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { useMap } = require("react-leaflet") as typeof import("react-leaflet");
   const map = useMap();
   useEffect(() => {
     if (target) map.flyTo(target, Math.max(map.getZoom(), 11), { duration: 0.8 });
