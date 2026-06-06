@@ -4,6 +4,7 @@ import L from "leaflet";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPlanes, mToFt, msToKt, type Bbox, type Plane } from "@/lib/opensky";
 import { haversineMi, bearingDeg } from "@/lib/geo";
+import { publishPlanes } from "@/lib/planes-bus";
 import type { RadiusFilter } from "@/lib/settings";
 
 function planeIcon(headingDeg: number, onGround: boolean) {
