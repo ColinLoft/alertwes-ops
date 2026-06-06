@@ -33,6 +33,9 @@ export interface Settings {
   states: string[];
   counties: string[];
   radius: RadiusFilter | null;
+
+  // Plane filter (independent of camera radius)
+  planesRadius: RadiusFilter | null;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -49,6 +52,7 @@ export const DEFAULT_SETTINGS: Settings = {
   states: ["CA"],
   counties: [],
   radius: null,
+  planesRadius: null,
 };
 
 const KEY = "aw.settings.v1";
