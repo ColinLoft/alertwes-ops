@@ -6,9 +6,13 @@ import { bearingDeg, haversineMi } from "@/lib/geo";
 
 const HIT = 40; // px hit-area for divIcon (much larger than the visible glyph)
 
+const iconCache = new Map<string, L.DivIcon>();
 function makeIcon(color: string, active: boolean, pulse: boolean, label: string, headingDeg: number | null, badge: number) {
+  const rot = headingDeg == null ? 0 : Math.round(headingDeg / 5) * 5;
+  const key = `${color}|${active ? 1 : 0}|${pulse ? 1 : 0}|${rot}|${badge}`;
+  const cached = iconCache.get(key);
+  if (cached) return cached;
   const safe = label.replace(/"/g, "&quot;");
-  const rot = headingDeg ?? 0;
   const svg = `
     <svg viewBox="0 0 24 24" width="22" height="22" style="transform: rotate(${rot}deg); transform-origin: 50% 50%;" aria-hidden="true">
       <path fill="currentColor" stroke="rgba(0,0,0,0.55)" stroke-width="0.8" stroke-linejoin="round"
@@ -16,12 +20,14 @@ function makeIcon(color: string, active: boolean, pulse: boolean, label: string,
       <circle cx="12" cy="14.5" r="2.3" fill="rgba(0,0,0,0.45)"/>
     </svg>`;
   const badgeHtml = badge > 1 ? `<span class="aw-badge">${badge}</span>` : "";
-  return L.divIcon({
+  const icon = L.divIcon({
     className: "",
     html: `<div class="aw-hit"><div class="aw-marker${active ? " aw-active" : ""}${pulse ? " aw-pulse" : ""}" style="--mc:${color}" role="button" tabindex="0" aria-label="${safe}">${svg}${badgeHtml}</div></div>`,
     iconSize: [HIT, HIT],
     iconAnchor: [HIT / 2, HIT / 2],
   });
+  iconCache.set(key, icon);
+  return icon;
 }
 
 const CELL_PX = 28;

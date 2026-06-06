@@ -93,6 +93,90 @@ function SettingsPage() {
       </header>
 
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+        {/* Branding */}
+        <Section title="Branding" description="Upload your own logo and pick the main UI colors. Saved on this device and used everywhere in the app.">
+          <div className="space-y-4 p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-background">
+                {settings.logoDataUrl ? (
+                  <img src={settings.logoDataUrl} alt="Custom logo" className="h-full w-full object-contain" />
+                ) : (
+                  <Flame className="h-7 w-7 text-primary" />
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground">
+                  Upload logo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 512 * 1024) {
+                        alert("Please pick a logo under 512 KB.");
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = () => set("logoDataUrl", String(reader.result));
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
+                {settings.logoDataUrl && (
+                  <button
+                    onClick={() => set("logoDataUrl", null)}
+                    className="text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    Remove logo
+                  </button>
+                )}
+              </div>
+            </div>
+            <Row label="Brand name" hint="Shown in the header next to the logo.">
+              <input
+                type="text"
+                value={settings.brandName}
+                onChange={(e) => set("brandName", e.target.value.slice(0, 32))}
+                className="w-44 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-primary"
+              />
+            </Row>
+            <Row label="Primary color" hint="Drives buttons, highlights, and active states.">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={settings.primaryColor}
+                  onChange={(e) => set("primaryColor", e.target.value)}
+                  className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={settings.primaryColor}
+                  onChange={(e) => set("primaryColor", e.target.value)}
+                  className="w-24 rounded-md border border-border bg-background px-2 py-1 text-xs font-mono outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </Row>
+            <Row label="Accent color" hint="Used for subtle hover states and overlays.">
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={settings.accentColor}
+                  onChange={(e) => set("accentColor", e.target.value)}
+                  className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={settings.accentColor}
+                  onChange={(e) => set("accentColor", e.target.value)}
+                  className="w-24 rounded-md border border-border bg-background px-2 py-1 text-xs font-mono outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </Row>
+          </div>
+        </Section>
+
         {/* General */}
         <Section title="General" description="How the map behaves while you watch it.">
           <Row label="Auto-refresh interval" hint={`${settings.refreshSeconds}s between automatic data fetches.`}>
