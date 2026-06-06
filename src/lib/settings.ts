@@ -7,11 +7,6 @@ export interface RadiusFilter {
   /** Stored & interpreted as MILES (legacy field name). */
   km: number;
 }
-  address: string;
-  lat: number;
-  lng: number;
-  km: number;
-}
 
 export type Basemap =
   | "darkTerrain"
