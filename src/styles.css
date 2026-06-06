@@ -195,7 +195,6 @@
   width: 22px;
   height: 22px;
   color: var(--mc);
-  filter: drop-shadow(0 0 6px color-mix(in oklab, var(--mc) 70%, transparent));
   transform-origin: center;
   transition: transform 0.15s ease;
 }
@@ -203,7 +202,6 @@
 .aw-marker:hover { transform: scale(1.25); }
 .aw-marker.aw-active {
   transform: scale(1.4);
-  filter: drop-shadow(0 0 12px color-mix(in oklab, var(--mc) 95%, transparent));
 }
 .aw-marker.aw-pulse::before {
   content: "";
