@@ -21,8 +21,7 @@ export const BASEMAPS: Record<Basemap, BasemapDef> = {
     attribution: "Tiles &copy; Esri",
     maxZoom: 19,
     className: "aw-tile-dark-relief",
-    labelsUrl:
-      "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
+    labelsUrl: "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
     labelsClassName: "aw-tile-labels-bright",
   },
   voyager: {
@@ -38,8 +37,7 @@ export const BASEMAPS: Record<Basemap, BasemapDef> = {
     id: "streets",
     label: "Streets",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 19,
   },
   satellite: {
