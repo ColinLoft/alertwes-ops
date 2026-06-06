@@ -54,20 +54,11 @@ function AdminPage() {
   const claimFirstAdmin = async () => {
     setBusy(true);
     try {
-      const { count } = await supabase
-        .from("user_roles")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "admin");
-      if ((count ?? 0) > 0) {
-        toast.error("An admin already exists. Ask them to grant you the role.");
-      } else {
-        const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
-        if (error) throw error;
-        toast.success("You are now the first administrator.");
-        await qc.invalidateQueries({ queryKey: ["user_roles"] });
-        // Force a soft reload so useAuth picks up the new role
-        window.location.reload();
-      }
+      const { error } = await supabase.rpc("claim_first_admin");
+      if (error) throw error;
+      toast.success("You are now the first administrator.");
+      await qc.invalidateQueries({ queryKey: ["user_roles"] });
+      window.location.reload();
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to claim admin");
     } finally {
