@@ -66,16 +66,27 @@ export const Route = createFileRoute("/api/planes")({
         const radiusMiles = Math.ceil(
           Math.min(500, Math.max(25, milesBetween(centerLat, centerLng, lamax, lomax))),
         );
-        const adsb = new URL(`https://api.adsb.lol/v2/lat/${centerLat.toFixed(4)}/lon/${centerLng.toFixed(4)}/dist/${radiusMiles}`);
+        const adsb = new URL(
+          `https://api.adsb.lol/v2/lat/${centerLat.toFixed(4)}/lon/${centerLng.toFixed(4)}/dist/${radiusMiles}`,
+        );
 
         try {
           const res = await fetchWithTimeout(adsb.toString(), 7_000);
           if (res.ok) {
-            const json = (await res.json()) as { ac?: Array<Record<string, unknown>>; now?: number };
+            const json = (await res.json()) as {
+              ac?: Array<Record<string, unknown>>;
+              now?: number;
+            };
             const now = typeof json.now === "number" ? json.now / 1000 : Date.now() / 1000;
             const states = (json.ac ?? [])
               .filter((ac) => typeof ac.lat === "number" && typeof ac.lon === "number")
-              .filter((ac) => (ac.lat as number) >= lamin && (ac.lat as number) <= lamax && (ac.lon as number) >= lomin && (ac.lon as number) <= lomax)
+              .filter(
+                (ac) =>
+                  (ac.lat as number) >= lamin &&
+                  (ac.lat as number) <= lamax &&
+                  (ac.lon as number) >= lomin &&
+                  (ac.lon as number) <= lomax,
+              )
               .map((ac) => {
                 const onGround = ac.alt_baro === "ground";
                 const lastContact = Math.round(now - (typeof ac.seen === "number" ? ac.seen : 0));
