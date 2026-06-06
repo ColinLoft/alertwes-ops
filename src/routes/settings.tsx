@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Crosshair, Flame, Loader2, MapPin, RotateCcw, Trash2 } from "lucide-react";
-import { DEFAULT_SETTINGS, useSettings, type Settings } from "@/lib/settings";
+import { DEFAULT_SETTINGS, useSettings, type Basemap, type Settings } from "@/lib/settings";
+import { BASEMAPS } from "@/lib/basemaps";
 import { geocode } from "@/lib/geo";
 import { fetchCameras } from "@/lib/alertwest";
 
@@ -121,6 +122,55 @@ function SettingsPage() {
             checked={settings.autoOpenNearest}
             onChange={(v) => set("autoOpenNearest", v)}
           />
+        </Section>
+
+        {/* Map & Overlays */}
+        <Section title="Map style" description="Pick the basemap and what overlays to show.">
+          <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
+            {Object.values(BASEMAPS).map((b) => {
+              const on = settings.basemap === b.id;
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => set("basemap", b.id as Basemap)}
+                  aria-pressed={on}
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                    on
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border bg-background text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {b.label}
+                </button>
+              );
+            })}
+          </div>
+          <Toggle
+            label="Show place labels"
+            hint="Overlay city and road labels on top of the basemap (when supported)."
+            checked={settings.showLabels}
+            onChange={(v) => set("showLabels", v)}
+          />
+        </Section>
+
+        {/* Aircraft overlay */}
+        <Section title="Aircraft overlay" description="Live planes overhead, sourced from ADS-B / OpenSky.">
+          <Toggle
+            label="Show planes on the map"
+            hint="Render a marker for every aircraft currently in the visible map area."
+            checked={settings.showPlanes}
+            onChange={(v) => set("showPlanes", v)}
+          />
+          <Row label="Aircraft refresh interval" hint={`${settings.planesRefreshSeconds}s between aircraft updates (min 10s).`}>
+            <NumberInput
+              value={settings.planesRefreshSeconds}
+              min={10}
+              max={300}
+              step={5}
+              suffix="s"
+              onChange={(v) => set("planesRefreshSeconds", v)}
+            />
+          </Row>
         </Section>
 
         {/* Radius */}
