@@ -7,11 +7,24 @@ export interface BasemapDef {
   attribution: string;
   maxZoom: number;
   subdomains?: string;
+  className?: string;
   /** Optional overlay (e.g. labels on top of satellite). */
   labelsUrl?: string;
+  labelsClassName?: string;
 }
 
 export const BASEMAPS: Record<Basemap, BasemapDef> = {
+  darkTerrain: {
+    id: "darkTerrain",
+    label: "Relief",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri",
+    maxZoom: 19,
+    className: "aw-tile-dark-relief",
+    labelsUrl:
+      "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
+    labelsClassName: "aw-tile-labels-bright",
+  },
   voyager: {
     id: "voyager",
     label: "Detailed",
