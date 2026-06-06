@@ -641,7 +641,7 @@ function FilterSummary({
   if (settings.states.length) parts.push(settings.states.join(", "));
   if (settings.counties.length)
     parts.push(`${settings.counties.length} ${settings.counties.length === 1 ? "county" : "counties"}`);
-  if (settings.radius) parts.push(`${settings.radius.km} km of address`);
+  if (settings.radius) parts.push(`${settings.radius.km} mi of address`);
   const isFiltered = parts.length > 0;
 
   return (
