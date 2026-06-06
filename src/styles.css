@@ -153,7 +153,7 @@
 
 /* Leaflet overrides */
 .leaflet-container {
-  background: oklch(0.14 0.02 250);
+  background: #05070a;
   font-family: inherit;
 }
 /* Subtle desaturation only — keeps satellite/streets readable */
