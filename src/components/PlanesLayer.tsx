@@ -7,6 +7,8 @@ import { haversineMi, bearingDeg } from "@/lib/geo";
 import { publishPlanes } from "@/lib/planes-bus";
 import type { RadiusFilter } from "@/lib/settings";
 
+const PLANE_HIT = 44;
+
 function planeIcon(headingDeg: number, onGround: boolean) {
   const color = onGround ? "#fde68a" : "#facc15";
   const svg = `
@@ -16,9 +18,9 @@ function planeIcon(headingDeg: number, onGround: boolean) {
     </svg>`;
   return L.divIcon({
     className: "",
-    html: `<div class="aw-plane" style="--pc:${color}; transform: rotate(${headingDeg}deg)" role="img" aria-label="Aircraft heading ${Math.round(headingDeg)} degrees">${svg}</div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    html: `<div class="aw-hit"><div class="aw-plane" style="--pc:${color}; transform: rotate(${headingDeg}deg)" role="img" aria-label="Aircraft heading ${Math.round(headingDeg)} degrees">${svg}</div></div>`,
+    iconSize: [PLANE_HIT, PLANE_HIT],
+    iconAnchor: [PLANE_HIT / 2, PLANE_HIT / 2],
   });
 }
 
