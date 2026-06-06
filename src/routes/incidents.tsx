@@ -6,7 +6,8 @@ import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Send } from "lucide-react";
+import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus } from "lucide-react";
+import { DispatchPanel } from "@/components/DispatchPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { getFirmsHotspots } from "@/lib/firms.functions";
 import { getRedFlagAlerts } from "@/lib/nws.functions";
@@ -363,17 +364,8 @@ function IncidentDetail({
         )}
       </div>
 
-      {/* Assign drone placeholder (Phase 3) */}
-      <div className="p-3 border-b border-white/10">
-        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Dispatch</div>
-        <button
-          disabled
-          className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary/30 px-3 py-2 text-sm font-medium text-primary-foreground/70 cursor-not-allowed"
-          title="Phase 3"
-        >
-          <Send className="h-3.5 w-3.5" /> Assign drone (Phase 3)
-        </button>
-      </div>
+      {/* Dispatch (Phase 3) */}
+      <DispatchPanel incident={incident} />
 
       {/* Timeline */}
       <div className="p-3 flex-1">
