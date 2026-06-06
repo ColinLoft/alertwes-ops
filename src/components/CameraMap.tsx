@@ -376,6 +376,16 @@ export function CameraMap() {
             maxZoom={BASEMAPS[settings.basemap].maxZoom}
             className={BASEMAPS[settings.basemap].className}
           />
+          {BASEMAPS[settings.basemap].hillshadeUrl && (
+            <TileLayer
+              key={`${settings.basemap}-hillshade`}
+              url={BASEMAPS[settings.basemap].hillshadeUrl as string}
+              attribution=""
+              subdomains={BASEMAPS[settings.basemap].hillshadeSubdomains ?? "abc"}
+              maxZoom={BASEMAPS[settings.basemap].maxZoom}
+              className={BASEMAPS[settings.basemap].hillshadeClassName}
+            />
+          )}
           {settings.showLabels && BASEMAPS[settings.basemap].labelsUrl && (
             <TileLayer
               key={`${settings.basemap}-labels`}
