@@ -8,12 +8,11 @@ import { fetchCameras, getStatus, parseViewLine, relTime, type Camera } from "@/
 import { CameraPanel } from "./CameraPanel";
 import { CameraList } from "./CameraList";
 import { PlanesLayer } from "./PlanesLayer";
-import { Plane as PlaneIcon } from "lucide-react";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
 import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, RefreshCw, Search, Settings as SettingsIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
-import { useSettings, type Basemap } from "@/lib/settings";
+import { useSettings } from "@/lib/settings";
 import { BASEMAPS } from "@/lib/basemaps";
 import { haversineKm } from "@/lib/geo";
 
@@ -78,8 +77,6 @@ export function CameraMap() {
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [view, setView] = useState<"map" | "list">("map");
-  const [, setSettings] = useSettings();
-  const setBasemap = (id: Basemap) => setSettings((p) => ({ ...p, basemap: id }));
 
   // Apply filters from settings (state / county / radius)
   const visibleCameras = useMemo(() => {
