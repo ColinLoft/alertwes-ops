@@ -9,7 +9,7 @@ import { CameraList } from "./CameraList";
 import { PlanesLayer } from "./PlanesLayer";
 import { CameraMarkersLayer } from "./CameraMarkersLayer";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
-import { AlertTriangle, Flame, Keyboard, List as ListIcon, Map as MapIcon, Plane as PlaneIcon, RefreshCw, Search, Settings as SettingsIcon, Video as VideoIcon, WifiOff, X } from "lucide-react";
+import { AlertTriangle, Flame, List as ListIcon, Map as MapIcon, Plane as PlaneIcon, RefreshCw, Search, Settings as SettingsIcon, Video as VideoIcon, WifiOff, X } from "lucide-react";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { dispatchTimeline } from "@/lib/timeline-bus";
 import { useSettings, useSettingsUrlSync } from "@/lib/settings";
