@@ -440,43 +440,6 @@ export function CameraMap() {
         </MapContainer>
       )}
 
-      {/* Basemap switcher (map view only) */}
-      {view === "map" && (
-        <div className="pointer-events-auto absolute right-3 top-[120px] z-[1000] flex flex-col gap-1 rounded-lg border border-white/10 bg-card/40 p-1 backdrop-blur-xl sm:right-4 sm:top-[72px]" role="radiogroup" aria-label="Basemap style">
-          {(Object.values(BASEMAPS)).map((b) => (
-            <button
-              key={b.id}
-              role="radio"
-              aria-checked={settings.basemap === b.id}
-              onClick={() => setBasemap(b.id)}
-              className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                settings.basemap === b.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              {b.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Planes toggle */}
-      {view === "map" && (
-        <button
-          onClick={() => setSettings((p) => ({ ...p, showPlanes: !p.showPlanes }))}
-          aria-pressed={settings.showPlanes}
-          aria-label="Toggle live aircraft overlay"
-          className={`pointer-events-auto absolute right-3 top-[296px] z-[1000] flex items-center gap-1.5 rounded-lg border border-white/10 px-2 py-1 text-[11px] font-medium backdrop-blur-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:right-4 sm:top-[248px] ${
-            settings.showPlanes
-              ? "bg-sky-500/30 text-sky-100"
-              : "bg-card/40 text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <PlaneIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          Planes
-        </button>
-      )}
 
 
 
