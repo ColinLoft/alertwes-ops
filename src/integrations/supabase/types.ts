@@ -282,6 +282,44 @@ export type Database = {
           },
         ]
       }
+      maintenance_logs: {
+        Row: {
+          created_at: string
+          description: string
+          drone_id: string
+          hours_at: number | null
+          id: string
+          kind: Database["public"]["Enums"]["maint_kind"]
+          performed_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          drone_id: string
+          hours_at?: number | null
+          id?: string
+          kind?: Database["public"]["Enums"]["maint_kind"]
+          performed_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          drone_id?: string
+          hours_at?: number | null
+          id?: string
+          kind?: Database["public"]["Enums"]["maint_kind"]
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_logs_drone_id_fkey"
+            columns: ["drone_id"]
+            isOneToOne: false
+            referencedRelation: "drones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_branding: {
         Row: {
           accent_color: string | null
@@ -370,6 +408,7 @@ export type Database = {
         | "contained"
         | "closed"
         | "false_positive"
+      maint_kind: "scheduled" | "unscheduled" | "inspection"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -518,6 +557,7 @@ export const Constants = {
         "closed",
         "false_positive",
       ],
+      maint_kind: ["scheduled", "unscheduled", "inspection"],
     },
   },
 } as const
