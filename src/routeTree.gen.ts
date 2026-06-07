@@ -15,10 +15,7 @@ import { Route as FleetRouteImport } from './routes/fleet'
 import { Route as DisasterRouteImport } from './routes/disaster'
 import { Route as BasesRouteImport } from './routes/bases'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as OpsPersonnelRouteImport } from './routes/ops.personnel'
-import { Route as OpsMaintenanceRouteImport } from './routes/ops.maintenance'
 import { Route as ApiPlanesRouteImport } from './routes/api/planes'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -51,24 +48,9 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OpsPersonnelRoute = OpsPersonnelRouteImport.update({
-  id: '/ops/personnel',
-  path: '/ops/personnel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OpsMaintenanceRoute = OpsMaintenanceRouteImport.update({
-  id: '/ops/maintenance',
-  path: '/ops/maintenance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPlanesRoute = ApiPlanesRouteImport.update({
@@ -79,7 +61,6 @@ const ApiPlanesRoute = ApiPlanesRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/bases': typeof BasesRoute
   '/disaster': typeof DisasterRoute
@@ -87,12 +68,9 @@ export interface FileRoutesByFullPath {
   '/incidents': typeof IncidentsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
-  '/ops/maintenance': typeof OpsMaintenanceRoute
-  '/ops/personnel': typeof OpsPersonnelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/bases': typeof BasesRoute
   '/disaster': typeof DisasterRoute
@@ -100,13 +78,10 @@ export interface FileRoutesByTo {
   '/incidents': typeof IncidentsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
-  '/ops/maintenance': typeof OpsMaintenanceRoute
-  '/ops/personnel': typeof OpsPersonnelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/bases': typeof BasesRoute
   '/disaster': typeof DisasterRoute
@@ -114,14 +89,11 @@ export interface FileRoutesById {
   '/incidents': typeof IncidentsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
-  '/ops/maintenance': typeof OpsMaintenanceRoute
-  '/ops/personnel': typeof OpsPersonnelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
     | '/auth'
     | '/bases'
     | '/disaster'
@@ -129,12 +101,9 @@ export interface FileRouteTypes {
     | '/incidents'
     | '/settings'
     | '/api/planes'
-    | '/ops/maintenance'
-    | '/ops/personnel'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/auth'
     | '/bases'
     | '/disaster'
@@ -142,12 +111,9 @@ export interface FileRouteTypes {
     | '/incidents'
     | '/settings'
     | '/api/planes'
-    | '/ops/maintenance'
-    | '/ops/personnel'
   id:
     | '__root__'
     | '/'
-    | '/admin'
     | '/auth'
     | '/bases'
     | '/disaster'
@@ -155,13 +121,10 @@ export interface FileRouteTypes {
     | '/incidents'
     | '/settings'
     | '/api/planes'
-    | '/ops/maintenance'
-    | '/ops/personnel'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   BasesRoute: typeof BasesRoute
   DisasterRoute: typeof DisasterRoute
@@ -169,8 +132,6 @@ export interface RootRouteChildren {
   IncidentsRoute: typeof IncidentsRoute
   SettingsRoute: typeof SettingsRoute
   ApiPlanesRoute: typeof ApiPlanesRoute
-  OpsMaintenanceRoute: typeof OpsMaintenanceRoute
-  OpsPersonnelRoute: typeof OpsPersonnelRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -217,32 +178,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ops/personnel': {
-      id: '/ops/personnel'
-      path: '/ops/personnel'
-      fullPath: '/ops/personnel'
-      preLoaderRoute: typeof OpsPersonnelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ops/maintenance': {
-      id: '/ops/maintenance'
-      path: '/ops/maintenance'
-      fullPath: '/ops/maintenance'
-      preLoaderRoute: typeof OpsMaintenanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/planes': {
@@ -257,7 +197,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   BasesRoute: BasesRoute,
   DisasterRoute: DisasterRoute,
@@ -265,8 +204,6 @@ const rootRouteChildren: RootRouteChildren = {
   IncidentsRoute: IncidentsRoute,
   SettingsRoute: SettingsRoute,
   ApiPlanesRoute: ApiPlanesRoute,
-  OpsMaintenanceRoute: OpsMaintenanceRoute,
-  OpsPersonnelRoute: OpsPersonnelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
