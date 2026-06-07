@@ -6,6 +6,7 @@ import {
   Warehouse,
   ShieldAlert,
   Camera,
+  FileText,
   Settings as SettingsIcon,
   LogOut,
   Menu,
@@ -24,8 +25,10 @@ const PRIMARY: NavItem[] = [
   { title: "Fleet", url: "/fleet", icon: Plane },
   { title: "Bases", url: "/bases", icon: Warehouse },
   { title: "Disaster", url: "/disaster", icon: ShieldAlert },
+  { title: "Reports", url: "/reports", icon: FileText },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ];
+
 
 function NavTile({ item, active }: { item: NavItem; active: boolean }) {
   return (
