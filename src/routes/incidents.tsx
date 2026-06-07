@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye } from "lucide-react";
+import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX } from "lucide-react";
 import { DispatchPanel } from "@/components/DispatchPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { getFirmsHotspots } from "@/lib/firms.functions";
@@ -15,7 +15,7 @@ import { getWindAtPoint } from "@/lib/synoptic.functions";
 import { sweepCameras } from "@/lib/ai-detect.functions";
 import { fetchCameras, type Camera } from "@/lib/alertwest";
 import { fetchDetectionArea, isInDetectionArea } from "@/lib/area";
-import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, type SuggestionRow } from "@/lib/suggestions";
+import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, type SuggestionRow } from "@/lib/suggestions";
 import {
   fetchIncidents,
   fetchIncidentEvents,
@@ -133,6 +133,9 @@ function IncidentsPage() {
       {/* Triage strip */}
       <TriageStrip suggestions={suggestions} onPromote={onPromoteSug} onDismiss={async (id) => {
         await dismissSuggestion(id); qc.invalidateQueries({ queryKey: ["suggestions"] });
+      }} onMute={async (s) => {
+        try { await muteCamera(s.camera_id ?? "", s.camera_name, 24, "False positive (dirty/glare)"); toast.success("Camera muted for 24h"); qc.invalidateQueries({ queryKey: ["suggestions"] }); }
+        catch (e: any) { toast.error(e?.message ?? "Failed"); }
       }} onSweep={runSweep} sweeping={sweeping} />
 
       {/* Toolbar */}
@@ -238,10 +241,11 @@ function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => voi
   );
 }
 
-function TriageStrip({ suggestions, onPromote, onDismiss, onSweep, sweeping }: {
+function TriageStrip({ suggestions, onPromote, onDismiss, onMute, onSweep, sweeping }: {
   suggestions: SuggestionRow[];
   onPromote: (s: SuggestionRow) => void;
   onDismiss: (id: string) => void;
+  onMute: (s: SuggestionRow) => void;
   onSweep: () => void;
   sweeping: boolean;
 }) {
@@ -251,9 +255,10 @@ function TriageStrip({ suggestions, onPromote, onDismiss, onSweep, sweeping }: {
         <Sparkles className="h-3.5 w-3.5 text-primary" />
         <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">AI Triage</div>
         <span className="text-[11px] text-muted-foreground">{suggestions.length} pending</span>
+        <span className="text-[10px] text-muted-foreground hidden md:inline">· auto-sweeping every minute</span>
         <button onClick={onSweep} disabled={sweeping}
           className="ml-auto inline-flex items-center gap-1.5 rounded bg-primary/15 border border-primary/40 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/25 disabled:opacity-50">
-          <Eye className={`h-3 w-3 ${sweeping ? "animate-pulse" : ""}`} /> {sweeping ? "Analyzing…" : "Run AI sweep"}
+          <Eye className={`h-3 w-3 ${sweeping ? "animate-pulse" : ""}`} /> {sweeping ? "Analyzing…" : "Sweep now"}
         </button>
       </div>
       {suggestions.length > 0 && (
@@ -274,8 +279,12 @@ function TriageStrip({ suggestions, onPromote, onDismiss, onSweep, sweeping }: {
                   <button onClick={() => onPromote(s)} className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-primary text-primary-foreground px-2 py-1 text-[10px] font-semibold hover:brightness-110">
                     <Check className="h-3 w-3" /> Promote
                   </button>
-                  <button onClick={() => onDismiss(s.id)} className="inline-flex items-center justify-center rounded border border-white/10 px-2 py-1 text-[10px] hover:bg-white/5">
+                  <button onClick={() => onDismiss(s.id)} title="Dismiss" className="inline-flex items-center justify-center rounded border border-white/10 px-2 py-1 text-[10px] hover:bg-white/5">
                     <X className="h-3 w-3" />
+                  </button>
+                  <button onClick={() => onMute(s)} title="Mute camera 24h (dirty / glare / fog)"
+                    className="inline-flex items-center justify-center rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 hover:bg-amber-500/20">
+                    <VolumeX className="h-3 w-3" />
                   </button>
                 </div>
               </div>

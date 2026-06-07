@@ -378,6 +378,33 @@ export type Database = {
           },
         ]
       }
+      muted_cameras: {
+        Row: {
+          camera_id: string
+          camera_name: string | null
+          created_at: string
+          muted_by: string | null
+          muted_until: string
+          reason: string | null
+        }
+        Insert: {
+          camera_id: string
+          camera_name?: string | null
+          created_at?: string
+          muted_by?: string | null
+          muted_until?: string
+          reason?: string | null
+        }
+        Update: {
+          camera_id?: string
+          camera_name?: string | null
+          created_at?: string
+          muted_by?: string | null
+          muted_until?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       user_branding: {
         Row: {
           accent_color: string | null
