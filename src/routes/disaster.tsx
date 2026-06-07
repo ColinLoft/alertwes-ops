@@ -1,10 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { ShieldAlert, Waves, CloudLightning, ExternalLink } from "lucide-react";
+import { ShieldAlert, Waves, CloudLightning, ExternalLink, Siren } from "lucide-react";
+import { toast } from "sonner";
 import { getRecentQuakes, type Quake } from "@/lib/usgs.functions";
 import { getRedFlagAlerts, type NwsAlert } from "@/lib/nws.functions";
+import { fetchResponseArea, isInDetectionArea } from "@/lib/area";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/disaster")({
   head: () => ({ meta: [{ title: "Disaster Response — Aegis Command" }] }),
@@ -22,26 +25,63 @@ function magColor(m: number) {
 }
 
 function DisasterPage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("quakes");
+  const [filterToArea, setFilterToArea] = useState(true);
   const fetchQuakes = useServerFn(getRecentQuakes);
   const fetchAlerts = useServerFn(getRedFlagAlerts);
 
-  const quakesQ = useQuery({
-    queryKey: ["usgs-quakes"],
-    queryFn: () => fetchQuakes({}),
-    refetchInterval: 60_000,
-  });
-  const alertsQ = useQuery({
-    queryKey: ["nws-redflag"],
-    queryFn: () => fetchAlerts({}),
-    refetchInterval: 60_000,
-  });
+  const quakesQ = useQuery({ queryKey: ["usgs-quakes"], queryFn: () => fetchQuakes({}), refetchInterval: 60_000 });
+  const alertsQ = useQuery({ queryKey: ["nws-redflag"], queryFn: () => fetchAlerts({}), refetchInterval: 60_000 });
+  const { data: area } = useQuery({ queryKey: ["response_area"], queryFn: fetchResponseArea });
 
-  const quakes = useMemo<Quake[]>(
-    () => (quakesQ.data?.quakes ?? []).sort((a, b) => b.mag - a.mag),
-    [quakesQ.data],
-  );
-  const alerts = useMemo<NwsAlert[]>(() => alertsQ.data?.alerts ?? [], [alertsQ.data]);
+  const quakes = useMemo<Quake[]>(() => {
+    const list = (quakesQ.data?.quakes ?? []).sort((a, b) => b.mag - a.mag);
+    if (!filterToArea || !area) return list;
+    return list.filter((q) => isInDetectionArea({ lat: q.lat, lng: q.lng }, area));
+  }, [quakesQ.data, area, filterToArea]);
+
+  const alerts = useMemo<NwsAlert[]>(() => {
+    const list = alertsQ.data?.alerts ?? [];
+    if (!filterToArea || !area || area.states.length === 0) return list;
+    const re = new RegExp(`\\b(${area.states.join("|")})\\b`);
+    return list.filter((a) => re.test(a.areaDesc));
+  }, [alertsQ.data, area, filterToArea]);
+
+  const respondToQuake = async (q: Quake) => {
+    if (area && !isInDetectionArea({ lat: q.lat, lng: q.lng }, area)) {
+      toast.error("Outside response area"); return;
+    }
+    const priority = q.mag >= 6 ? "p1" : q.mag >= 5 ? "p2" : q.mag >= 4 ? "p3" : "p4";
+    const { data, error } = await supabase.from("incidents").insert({
+      title: `M${q.mag.toFixed(1)} — ${q.place}`,
+      source: "other", status: "new", priority,
+      confidence: 90, lat: q.lat, lng: q.lng, external_id: q.id,
+    }).select("id").single();
+    if (error) return toast.error(error.message);
+    await supabase.from("incident_events").insert({
+      incident_id: data!.id, event_type: "created",
+      message: `Disaster response — USGS M${q.mag.toFixed(1)} ${q.place}`,
+    });
+    toast.success("Response opened — go to CAD");
+    navigate({ to: "/incidents" });
+  };
+
+  const respondToAlert = async (a: NwsAlert) => {
+    if (!area) return toast.error("Response area not set");
+    const { data, error } = await supabase.from("incidents").insert({
+      title: `${a.event} — ${a.areaDesc.split(";")[0]}`.slice(0, 200),
+      source: "nws", status: "new", priority: a.severity === "Extreme" ? "p1" : "p2",
+      confidence: 80, lat: Number(area.center_lat), lng: Number(area.center_lng),
+      external_id: a.id,
+    }).select("id").single();
+    if (error) return toast.error(error.message);
+    await supabase.from("incident_events").insert({
+      incident_id: data!.id, event_type: "created", message: `NWS ${a.event}: ${a.headline}`,
+    });
+    toast.success("Response opened — go to CAD");
+    navigate({ to: "/incidents" });
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -50,26 +90,24 @@ function DisasterPage() {
         <div>
           <div className="text-sm font-semibold uppercase tracking-wider">Disaster Response</div>
           <div className="text-[11px] text-muted-foreground">
-            USGS seismic activity & active NWS warnings. ISR drones can be dispatched from the Incidents board.
+            USGS seismic activity & active NWS warnings. Click <strong>Respond</strong> to open a CAD incident with full notes & mission planning.
           </div>
         </div>
-        <div className="ml-auto flex items-center gap-1 rounded-md border border-white/10 bg-white/5 p-0.5">
-          <button
-            onClick={() => setTab("quakes")}
-            className={`inline-flex h-7 items-center gap-1.5 rounded px-2 text-xs font-medium ${
-              tab === "quakes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Waves className="h-3.5 w-3.5" /> Earthquakes <span className="opacity-60">{quakes.length}</span>
-          </button>
-          <button
-            onClick={() => setTab("redflag")}
-            className={`inline-flex h-7 items-center gap-1.5 rounded px-2 text-xs font-medium ${
-              tab === "redflag" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <CloudLightning className="h-3.5 w-3.5" /> Red Flag <span className="opacity-60">{alerts.length}</span>
-          </button>
+        <div className="ml-auto flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer">
+            <input type="checkbox" checked={filterToArea} onChange={(e) => setFilterToArea(e.target.checked)} />
+            Filter to response area
+          </label>
+          <div className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 p-0.5">
+            <button onClick={() => setTab("quakes")}
+              className={`inline-flex h-7 items-center gap-1.5 rounded px-2 text-xs font-medium ${tab === "quakes" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              <Waves className="h-3.5 w-3.5" /> Earthquakes <span className="opacity-60">{quakes.length}</span>
+            </button>
+            <button onClick={() => setTab("redflag")}
+              className={`inline-flex h-7 items-center gap-1.5 rounded px-2 text-xs font-medium ${tab === "redflag" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              <CloudLightning className="h-3.5 w-3.5" /> Red Flag <span className="opacity-60">{alerts.length}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -77,18 +115,10 @@ function DisasterPage() {
         {tab === "quakes" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {quakes.map((q) => (
-              <a
-                key={q.id}
-                href={q.url}
-                target="_blank"
-                rel="noreferrer"
-                className="aw-panel rounded-lg border border-white/10 bg-white/[0.03] p-3 hover:bg-white/[0.06]"
-              >
+              <div key={q.id} className="aw-panel rounded-lg border border-white/10 bg-white/[0.03] p-3">
                 <div className="flex items-center gap-2">
-                  <div
-                    className="grid h-10 w-10 place-items-center rounded-md font-mono text-sm font-bold"
-                    style={{ background: `${magColor(q.mag)}22`, color: magColor(q.mag) }}
-                  >
+                  <div className="grid h-10 w-10 place-items-center rounded-md font-mono text-sm font-bold"
+                    style={{ background: `${magColor(q.mag)}22`, color: magColor(q.mag) }}>
                     {q.mag.toFixed(1)}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -97,30 +127,37 @@ function DisasterPage() {
                       {new Date(q.time).toLocaleString()} · depth {q.depth.toFixed(1)} km
                     </div>
                   </div>
-                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                  <a href={q.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground" title="USGS detail">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
                 </div>
-              </a>
+                <div className="mt-2 flex gap-1.5">
+                  <button onClick={() => respondToQuake(q)}
+                    className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground hover:brightness-110">
+                    <Siren className="h-3 w-3" /> Respond
+                  </button>
+                </div>
+              </div>
             ))}
             {quakes.length === 0 && (
               <div className="col-span-full p-6 text-center text-sm text-muted-foreground">
-                {quakesQ.isLoading ? "Loading USGS feed…" : "No quakes ≥ 2.5 in the last 24h."}
+                {quakesQ.isLoading ? "Loading USGS feed…" : filterToArea ? "No quakes inside the response area." : "No quakes ≥ 2.5 in the last 24h."}
               </div>
             )}
           </div>
         ) : (
           <div className="space-y-2">
             {alerts.map((a) => (
-              <div
-                key={a.id}
-                className="aw-panel rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-3"
-              >
+              <div key={a.id} className="aw-panel rounded-lg border border-amber-500/30 bg-amber-500/[0.05] p-3">
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-400">
                     {a.severity || a.event}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    expires {new Date(a.expires).toLocaleString()}
-                  </span>
+                  <span className="text-xs text-muted-foreground">expires {new Date(a.expires).toLocaleString()}</span>
+                  <button onClick={() => respondToAlert(a)}
+                    className="ml-auto inline-flex items-center gap-1 rounded bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground hover:brightness-110">
+                    <Siren className="h-3 w-3" /> Respond
+                  </button>
                 </div>
                 <div className="mt-1 text-sm font-medium">{a.headline}</div>
                 <div className="text-[11px] text-muted-foreground">{a.areaDesc}</div>
@@ -128,7 +165,7 @@ function DisasterPage() {
             ))}
             {alerts.length === 0 && (
               <div className="p-6 text-center text-sm text-muted-foreground">
-                {alertsQ.isLoading ? "Loading NWS feed…" : "No active Red Flag Warnings."}
+                {alertsQ.isLoading ? "Loading NWS feed…" : filterToArea ? "No active Red Flag Warnings in the response area." : "No active Red Flag Warnings."}
               </div>
             )}
           </div>

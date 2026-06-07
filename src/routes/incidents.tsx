@@ -360,6 +360,8 @@ function IncidentDetail({ incident, onClose, onStatusChange, windFn }: {
 
       <DispatchPanel incident={incident} />
 
+      <NotesPanel incidentId={incident.id} />
+
       <div className="p-3 flex-1">
         <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Timeline</div>
         {events.length === 0 ? (
@@ -369,13 +371,46 @@ function IncidentDetail({ incident, onClose, onStatusChange, windFn }: {
             {events.map((e) => (
               <li key={e.id} className="text-[11px] border-l border-white/10 pl-2">
                 <div className="text-muted-foreground">{new Date(e.created_at).toLocaleTimeString()}</div>
-                <div className="text-foreground">{e.message ?? e.event_type}</div>
+                <div className="text-foreground whitespace-pre-wrap">{e.message ?? e.event_type}</div>
               </li>
             ))}
           </ol>
         )}
       </div>
     </aside>
+  );
+}
+
+function NotesPanel({ incidentId }: { incidentId: string }) {
+  const qc = useQueryClient();
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const submit = async () => {
+    const text = note.trim();
+    if (!text) return;
+    setSaving(true);
+    const { error } = await supabase.from("incident_events").insert({
+      incident_id: incidentId, event_type: "note", message: text,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    setNote("");
+    qc.invalidateQueries({ queryKey: ["incident_events", incidentId] });
+    toast.success("Note added");
+  };
+  return (
+    <div className="p-3 border-b border-white/10">
+      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Notes</div>
+      <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
+        placeholder="Add a note — observation, ops update, mission detail…"
+        className="w-full rounded-md border border-white/10 bg-background px-2 py-1.5 text-xs resize-y" />
+      <div className="mt-1 flex justify-end">
+        <button onClick={submit} disabled={saving || !note.trim()}
+          className="inline-flex items-center gap-1 rounded bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground hover:brightness-110 disabled:opacity-50">
+          {saving ? "Saving…" : "Add note"}
+        </button>
+      </div>
+    </div>
   );
 }
 

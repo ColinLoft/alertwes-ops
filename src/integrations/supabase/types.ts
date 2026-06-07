@@ -100,30 +100,36 @@ export type Database = {
       }
       detection_area: {
         Row: {
+          address: string | null
           center_lat: number
           center_lng: number
           counties: string[]
           id: boolean
+          mode: string
           radius_mi: number
           states: string[]
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          address?: string | null
           center_lat?: number
           center_lng?: number
           counties?: string[]
           id?: boolean
+          mode?: string
           radius_mi?: number
           states?: string[]
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          address?: string | null
           center_lat?: number
           center_lng?: number
           counties?: string[]
           id?: boolean
+          mode?: string
           radius_mi?: number
           states?: string[]
           updated_at?: string
@@ -402,6 +408,45 @@ export type Database = {
           muted_by?: string | null
           muted_until?: string
           reason?: string | null
+        }
+        Relationships: []
+      }
+      response_area: {
+        Row: {
+          address: string | null
+          center_lat: number
+          center_lng: number
+          counties: string[]
+          id: boolean
+          mode: string
+          radius_mi: number
+          states: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          center_lat?: number
+          center_lng?: number
+          counties?: string[]
+          id?: boolean
+          mode?: string
+          radius_mi?: number
+          states?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          center_lat?: number
+          center_lng?: number
+          counties?: string[]
+          id?: boolean
+          mode?: string
+          radius_mi?: number
+          states?: string[]
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }

@@ -101,8 +101,32 @@ function BrandingSection({ settings, set }: { settings: Settings; set: <K extend
             onChange={(e) => set("brandName", e.target.value.slice(0, 32))}
             className="w-full sm:w-64 rounded-md border border-white/10 bg-background px-2 py-1.5 text-sm" />
         </label>
+        <div className="grid grid-cols-2 gap-3 max-w-sm">
+          <ColorField label="Primary color" value={settings.primaryColor}
+            onChange={(v) => set("primaryColor", v)} />
+          <ColorField label="Background color" value={settings.backgroundColor}
+            onChange={(v) => set("backgroundColor", v)} />
+        </div>
+        <p className="text-[10.5px] text-muted-foreground">
+          Tip: paste any CSS color — hex (<code>#0f172a</code>) or <code>oklch(0.14 0.02 240)</code>.
+        </p>
       </div>
     </section>
+  );
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const isHex = /^#[0-9a-f]{6}$/i.test(value);
+  return (
+    <label className="block space-y-1">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="flex gap-1">
+        <input type="color" value={isHex ? value : "#0f172a"} onChange={(e) => onChange(e.target.value)}
+          className="h-8 w-10 cursor-pointer rounded border border-white/10 bg-background p-0.5" />
+        <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
+          className="flex-1 rounded-md border border-white/10 bg-background px-2 py-1 text-xs font-mono" />
+      </div>
+    </label>
   );
 }
 
