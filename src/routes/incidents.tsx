@@ -77,8 +77,18 @@ function IncidentsPage() {
     });
   }, [cameras, area]);
 
-  const hotspots = firms?.hotspots ?? [];
+  const hotspots = useMemo(() => {
+    const all = firms?.hotspots ?? [];
+    if (!area) return all;
+    return all.filter((h) => isInDetectionArea({ lat: h.lat, lng: h.lng }, area));
+  }, [firms, area]);
   const redFlagCount = nws?.alerts?.length ?? 0;
+
+  // Radius filter for planes (only when area is in address/radius mode)
+  const planesRadius = useMemo(() => {
+    if (!area || area.mode !== "address") return null;
+    return { address: area.address ?? "", lat: Number(area.center_lat), lng: Number(area.center_lng), km: Number(area.radius_mi) };
+  }, [area]);
 
 
   const visible = useMemo(() => {
@@ -172,7 +182,8 @@ function IncidentsPage() {
         <span className="uppercase tracking-[0.18em] text-muted-foreground">Active Calls</span>
         <span className="font-mono">{visible.length}</span>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-muted-foreground">FIRMS 24h: <span className="font-mono text-foreground">{hotspots.length}</span></span>
+          <span className="text-muted-foreground">Cameras (area): <span className="font-mono text-foreground">{inAreaCameras.length}</span></span>
+          <span className="text-muted-foreground">FIRMS 24h (area): <span className="font-mono text-foreground">{hotspots.length}</span></span>
           <span className="text-muted-foreground">Red Flag: <span className="font-mono text-foreground">{redFlagCount}</span>{redFlagCount > 0 && <AlertTriangle className="inline h-3 w-3 ml-1 text-amber-400" />}</span>
           <div className="flex gap-1 ml-2">
             <FilterPill on={statusFilter === "active"} onClick={() => setStatusFilter("active")}>Active</FilterPill>
@@ -247,7 +258,7 @@ function IncidentsPage() {
               </Marker>
             ))}
             <CameraMarkersLayer cameras={inAreaCameras} selectedId={null} onSelect={() => {}} showPulse={false} />
-            <PlanesLayer refreshSeconds={30} />
+            <PlanesLayer refreshSeconds={30} radius={planesRadius} />
           </MapContainer>
         </div>
 
