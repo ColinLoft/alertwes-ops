@@ -207,7 +207,7 @@ function AnalyticsPage() {
                       <span className="block h-full" style={{ width: `${c.h.score}%`, background: c.h.score >= 75 ? "#34d399" : c.h.score >= 50 ? "#fbbf24" : "#f43f5e" }} />
                     </span>
                     <span className="font-mono w-[60px] text-right">{c.h.score}/100</span>
-                    <span className="font-mono w-[64px] text-right text-muted-foreground">✓{c.h.confirmed} ✗{c.h.false_positive}</span>
+                    <span className="font-mono w-[64px] text-right text-muted-foreground">✓{c.h.confirmed} ✗{c.h.false_positives}</span>
                   </li>
                 ))}
               </ul>
