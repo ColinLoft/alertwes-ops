@@ -15,7 +15,7 @@ import { getWindAtPoint } from "@/lib/synoptic.functions";
 import { sweepCameras } from "@/lib/ai-detect.functions";
 import { fetchCameras, type Camera } from "@/lib/alertwest";
 import { fetchDetectionArea, isInDetectionArea } from "@/lib/area";
-import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, type SuggestionRow } from "@/lib/suggestions";
+import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, type SuggestionRow } from "@/lib/suggestions";
 import {
   fetchIncidents,
   fetchIncidentEvents,
