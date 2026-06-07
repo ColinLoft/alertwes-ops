@@ -182,7 +182,8 @@ function IncidentsPage() {
         <span className="uppercase tracking-[0.18em] text-muted-foreground">Active Calls</span>
         <span className="font-mono">{visible.length}</span>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-muted-foreground">FIRMS 24h: <span className="font-mono text-foreground">{hotspots.length}</span></span>
+          <span className="text-muted-foreground">Cameras (area): <span className="font-mono text-foreground">{inAreaCameras.length}</span></span>
+          <span className="text-muted-foreground">FIRMS 24h (area): <span className="font-mono text-foreground">{hotspots.length}</span></span>
           <span className="text-muted-foreground">Red Flag: <span className="font-mono text-foreground">{redFlagCount}</span>{redFlagCount > 0 && <AlertTriangle className="inline h-3 w-3 ml-1 text-amber-400" />}</span>
           <div className="flex gap-1 ml-2">
             <FilterPill on={statusFilter === "active"} onClick={() => setStatusFilter("active")}>Active</FilterPill>
