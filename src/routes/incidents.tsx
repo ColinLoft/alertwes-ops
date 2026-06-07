@@ -258,7 +258,7 @@ function IncidentsPage() {
               </Marker>
             ))}
             <CameraMarkersLayer cameras={inAreaCameras} selectedId={null} onSelect={() => {}} showPulse={false} />
-            <PlanesLayer refreshSeconds={30} />
+            <PlanesLayer refreshSeconds={30} radius={planesRadius} />
           </MapContainer>
         </div>
 
