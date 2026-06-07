@@ -45,6 +45,7 @@ export interface Settings {
   brandName: string;
   primaryColor: string; // any CSS color (hex preferred)
   accentColor: string;
+  backgroundColor: string; // CSS color for --background (oklch or hex)
 }
 
 export const DEFAULT_SETTINGS: Settings = {
