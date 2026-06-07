@@ -64,9 +64,22 @@ function IncidentsPage() {
   const { data: area } = useQuery({ queryKey: ["detection_area"], queryFn: fetchDetectionArea });
   const { data: suggestions = [] } = useQuery({ queryKey: ["suggestions"], queryFn: fetchPendingSuggestions, refetchInterval: 30_000 });
   const { data: cameras = [] } = useQuery({ queryKey: ["aw-cameras"], queryFn: fetchCameras, staleTime: 5 * 60_000 });
+  const { data: sweepStatus } = useQuery({ queryKey: ["sweep_status"], queryFn: fetchSweepStatus, refetchInterval: 15_000 });
+  const { data: cameraHealth = {} } = useQuery({ queryKey: ["camera_health"], queryFn: fetchCameraHealth, refetchInterval: 60_000 });
+
+  // Cameras restricted to the detection area for map overlay.
+  const inAreaCameras = useMemo(() => {
+    if (!area) return cameras;
+    return cameras.filter((c) => {
+      const lat = Number(c.site.latitude), lng = Number(c.site.longitude);
+      if (!isFinite(lat) || !isFinite(lng)) return false;
+      return isInDetectionArea({ lat, lng, state: c.site.state, county: c.site.county }, area);
+    });
+  }, [cameras, area]);
 
   const hotspots = firms?.hotspots ?? [];
   const redFlagCount = nws?.alerts?.length ?? 0;
+
 
   const visible = useMemo(() => {
     if (statusFilter === "all") return incidents;
