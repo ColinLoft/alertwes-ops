@@ -273,9 +273,33 @@ function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => voi
   );
 }
 
-function TriageStrip({ suggestions, onPromote, onDismiss, onMute, onSweep, sweeping }: {
+function SweepStatusPanel({ status, inAreaCameras, pendingShown }: {
+  status: { last_run_at: string | null; last_window_count: number; pending_in_area: number; total_24h: number } | undefined;
+  inAreaCameras: number;
+  pendingShown: number;
+}) {
+  const ageS = status?.last_run_at ? Math.max(0, (Date.now() - new Date(status.last_run_at).getTime()) / 1000) : null;
+  const fresh = ageS != null && ageS < 90;
+  return (
+    <div className="flex items-center gap-3 px-3 py-1.5 border-b border-white/10 glass-subtle text-[11px]">
+      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 ${fresh ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"}`}>
+        <Activity className={`h-3 w-3 ${fresh ? "animate-pulse" : ""}`} />
+        <span className="font-semibold uppercase tracking-wider text-[10px]">Sweep</span>
+      </span>
+      <span className="text-muted-foreground">Last: <span className="font-mono text-foreground">{ageS == null ? "—" : ageS < 60 ? `${Math.floor(ageS)}s ago` : `${Math.floor(ageS / 60)}m ago`}</span></span>
+      <span className="text-muted-foreground">Last 2m: <span className="font-mono text-foreground">{status?.last_window_count ?? 0}</span> queued</span>
+      <span className="text-muted-foreground">Pending: <span className="font-mono text-foreground">{pendingShown}</span></span>
+      <span className="text-muted-foreground">24h: <span className="font-mono text-foreground">{status?.total_24h ?? 0}</span></span>
+      <span className="ml-auto text-muted-foreground">Area cameras: <span className="font-mono text-foreground">{inAreaCameras}</span></span>
+    </div>
+  );
+}
+
+function TriageStrip({ suggestions, cameraHealth, onConfirm, onFalsePositive, onDismiss, onMute, onSweep, sweeping }: {
   suggestions: SuggestionRow[];
-  onPromote: (s: SuggestionRow) => void;
+  cameraHealth: Record<string, CameraHealth>;
+  onConfirm: (s: SuggestionRow) => void;
+  onFalsePositive: (s: SuggestionRow) => void;
   onDismiss: (id: string) => void;
   onMute: (s: SuggestionRow) => void;
   onSweep: () => void;
@@ -287,7 +311,7 @@ function TriageStrip({ suggestions, onPromote, onDismiss, onMute, onSweep, sweep
         <Sparkles className="h-3.5 w-3.5 text-primary" />
         <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">AI Triage</div>
         <span className="text-[11px] text-muted-foreground">{suggestions.length} pending</span>
-        <span className="text-[10px] text-muted-foreground hidden md:inline">· auto-sweeping every minute</span>
+        <span className="text-[10px] text-muted-foreground hidden md:inline">· auto-sweeping every minute · feedback trains future runs</span>
         <button onClick={onSweep} disabled={sweeping}
           className="ml-auto inline-flex items-center gap-1.5 rounded bg-primary/15 border border-primary/40 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/25 disabled:opacity-50">
           <Eye className={`h-3 w-3 ${sweeping ? "animate-pulse" : ""}`} /> {sweeping ? "Analyzing…" : "Sweep now"}
@@ -295,38 +319,60 @@ function TriageStrip({ suggestions, onPromote, onDismiss, onMute, onSweep, sweep
       </div>
       {suggestions.length > 0 && (
         <div className="flex gap-2 overflow-x-auto p-2">
-          {suggestions.map((s) => (
-            <div key={s.id} className="shrink-0 w-[260px] rounded-lg border border-white/10 bg-white/[0.04] overflow-hidden">
-              {s.image_url && <img src={s.image_url} alt="" className="w-full h-[100px] object-cover" />}
-              <div className="p-2 space-y-1">
-                <div className="flex items-center gap-1.5">
-                  <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${s.label === "fire" ? "bg-rose-500/20 text-rose-300" : "bg-amber-500/20 text-amber-300"}`}>
-                    {s.label}
-                  </span>
-                  <span className="text-[10px] font-mono text-muted-foreground">{s.confidence}%</span>
-                  <span className="ml-auto text-[10px] text-muted-foreground truncate max-w-[100px]">{s.camera_name}</span>
-                </div>
-                {s.reasoning && <div className="text-[10.5px] text-muted-foreground line-clamp-2">{s.reasoning}</div>}
-                <div className="flex gap-1 pt-1">
-                  <button onClick={() => onPromote(s)} className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-primary text-primary-foreground px-2 py-1 text-[10px] font-semibold hover:brightness-110">
-                    <Check className="h-3 w-3" /> Promote
-                  </button>
-                  <button onClick={() => onDismiss(s.id)} title="Dismiss" className="inline-flex items-center justify-center rounded border border-white/10 px-2 py-1 text-[10px] hover:bg-white/5">
-                    <X className="h-3 w-3" />
-                  </button>
-                  <button onClick={() => onMute(s)} title="Mute camera 24h (dirty / glare / fog)"
-                    className="inline-flex items-center justify-center rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 hover:bg-amber-500/20">
-                    <VolumeX className="h-3 w-3" />
-                  </button>
+          {suggestions.map((s) => {
+            const health = s.camera_id ? cameraHealth[s.camera_id] : undefined;
+            const healthColor = !health ? "text-muted-foreground" : health.score >= 75 ? "text-emerald-300" : health.score >= 50 ? "text-amber-300" : "text-rose-300";
+            return (
+              <div key={s.id} className="shrink-0 w-[280px] rounded-lg border border-white/10 bg-white/[0.04] overflow-hidden">
+                {s.image_url && <img src={s.image_url} alt="" className="w-full h-[100px] object-cover" />}
+                <div className="p-2 space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${s.label === "fire" ? "bg-rose-500/20 text-rose-300" : "bg-amber-500/20 text-amber-300"}`}>
+                      {s.label}
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground">{s.confidence}%</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground truncate max-w-[110px]">{s.camera_name}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px]">
+                    <ShieldCheck className={`h-3 w-3 ${healthColor}`} />
+                    <span className={`font-mono ${healthColor}`} title={health ? `${health.confirmed} confirmed / ${health.false_positives} FP last 30d` : "No history"}>
+                      Health {health ? `${health.score}%` : "—"}
+                    </span>
+                    {health?.flagged && (
+                      <span className="rounded bg-rose-500/15 px-1 py-0.5 text-[9px] uppercase tracking-wider text-rose-300 border border-rose-500/30">
+                        Repeat FP
+                      </span>
+                    )}
+                  </div>
+                  {s.reasoning && <div className="text-[10.5px] text-muted-foreground line-clamp-2">{s.reasoning}</div>}
+                  <div className="flex gap-1 pt-0.5">
+                    <button onClick={() => onConfirm(s)} title="Confirm — open incident" className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-emerald-500/20 border border-emerald-500/40 px-2 py-1 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/30">
+                      <Check className="h-3 w-3" /> Confirmed
+                    </button>
+                    <button onClick={() => onFalsePositive(s)} title="False positive — train future sweeps" className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-rose-500/15 border border-rose-500/40 px-2 py-1 text-[10px] font-semibold text-rose-300 hover:bg-rose-500/25">
+                      <ThumbsDown className="h-3 w-3" /> False
+                    </button>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => onDismiss(s.id)} title="Dismiss without verdict" className="flex-1 inline-flex items-center justify-center rounded border border-white/10 px-2 py-1 text-[10px] hover:bg-white/5">
+                      <X className="h-3 w-3" /> Skip
+                    </button>
+                    <button onClick={() => onMute(s)} title="Mute camera 24h (dirty / glare / fog)"
+                      className="inline-flex items-center justify-center rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 hover:bg-amber-500/20">
+                      <VolumeX className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
+
+
 
 function IncidentDetail({ incident, onClose, onStatusChange, windFn }: {
   incident: IncidentRow;
