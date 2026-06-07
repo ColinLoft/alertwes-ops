@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye } from "lucide-react";
+import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX } from "lucide-react";
 import { DispatchPanel } from "@/components/DispatchPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { getFirmsHotspots } from "@/lib/firms.functions";
