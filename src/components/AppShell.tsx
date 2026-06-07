@@ -157,9 +157,9 @@ function TopBar() {
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ApprovalGate>
-      <div className="flex min-h-screen w-full flex-col bg-background text-foreground">
+      <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
         <TopBar />
-        <main className="flex-1 min-h-0 min-w-0 relative">{children}</main>
+        <main className="flex-1 min-h-0 min-w-0 relative overflow-auto">{children}</main>
       </div>
     </ApprovalGate>
   );
