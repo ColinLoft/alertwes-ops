@@ -6,8 +6,10 @@ import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX } from "lucide-react";
+import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX, Activity, ThumbsDown, ShieldCheck } from "lucide-react";
 import { DispatchPanel } from "@/components/DispatchPanel";
+import { CameraMarkersLayer } from "@/components/CameraMarkersLayer";
+import { PlanesLayer } from "@/components/PlanesLayer";
 import { supabase } from "@/integrations/supabase/client";
 import { getFirmsHotspots } from "@/lib/firms.functions";
 import { getRedFlagAlerts } from "@/lib/nws.functions";
@@ -15,7 +17,7 @@ import { getWindAtPoint } from "@/lib/synoptic.functions";
 import { sweepCameras } from "@/lib/ai-detect.functions";
 import { fetchCameras, type Camera } from "@/lib/alertwest";
 import { fetchDetectionArea, isInDetectionArea } from "@/lib/area";
-import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, type SuggestionRow } from "@/lib/suggestions";
+import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, fetchSweepStatus, fetchCameraHealth, markFalsePositive, type SuggestionRow, type CameraHealth } from "@/lib/suggestions";
 import {
   fetchIncidents,
   fetchIncidentEvents,
@@ -26,6 +28,7 @@ import {
   type IncidentRow,
   type IncidentStatus,
 } from "@/lib/incidents";
+
 
 export const Route = createFileRoute("/incidents")({
   head: () => ({ meta: [{ title: "CAD — Aegis Command" }] }),
