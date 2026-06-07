@@ -54,6 +54,13 @@ export interface CandidateLoc {
   county?: string | null;
 }
 
+function normRegion(value?: string | null) {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/\s+county$/i, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
 export function isInDetectionArea(loc: CandidateLoc, area: DetectionArea | null | undefined): boolean {
   if (!area) return false;
   if (area.mode === "address" || (!area.states?.length && !area.counties?.length)) {
@@ -61,12 +68,16 @@ export function isInDetectionArea(loc: CandidateLoc, area: DetectionArea | null 
       haversineMi({ lat: Number(area.center_lat), lng: Number(area.center_lng) }, loc) <= Number(area.radius_mi);
   }
   // region mode
-  const stateMatch = area.states.length > 0 && loc.state ? area.states.includes(loc.state) : false;
-  const countyMatch = area.counties.length > 0 && loc.county ? area.counties.includes(loc.county) : false;
+  const selectedStates = (area.states ?? []).map((s) => s.toUpperCase());
+  const selectedCounties = (area.counties ?? []).map(normRegion);
+  const stateMatch = selectedStates.length > 0 && loc.state ? selectedStates.includes(loc.state.toUpperCase()) : false;
+  const countyMatch = selectedCounties.length > 0 && loc.county ? selectedCounties.includes(normRegion(loc.county)) : false;
   // permissive if no location metadata available — fall back to radius
   if (!loc.state && !loc.county) {
     return area.radius_mi > 0 &&
       haversineMi({ lat: Number(area.center_lat), lng: Number(area.center_lng) }, loc) <= Number(area.radius_mi);
   }
-  return stateMatch || countyMatch;
+  // If counties are selected, they narrow the state instead of selecting the whole state.
+  if (selectedCounties.length > 0) return countyMatch;
+  return stateMatch;
 }
