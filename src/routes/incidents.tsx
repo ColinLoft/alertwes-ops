@@ -241,10 +241,11 @@ function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => voi
   );
 }
 
-function TriageStrip({ suggestions, onPromote, onDismiss, onSweep, sweeping }: {
+function TriageStrip({ suggestions, onPromote, onDismiss, onMute, onSweep, sweeping }: {
   suggestions: SuggestionRow[];
   onPromote: (s: SuggestionRow) => void;
   onDismiss: (id: string) => void;
+  onMute: (s: SuggestionRow) => void;
   onSweep: () => void;
   sweeping: boolean;
 }) {
@@ -254,9 +255,10 @@ function TriageStrip({ suggestions, onPromote, onDismiss, onSweep, sweeping }: {
         <Sparkles className="h-3.5 w-3.5 text-primary" />
         <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">AI Triage</div>
         <span className="text-[11px] text-muted-foreground">{suggestions.length} pending</span>
+        <span className="text-[10px] text-muted-foreground hidden md:inline">· auto-sweeping every minute</span>
         <button onClick={onSweep} disabled={sweeping}
           className="ml-auto inline-flex items-center gap-1.5 rounded bg-primary/15 border border-primary/40 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/25 disabled:opacity-50">
-          <Eye className={`h-3 w-3 ${sweeping ? "animate-pulse" : ""}`} /> {sweeping ? "Analyzing…" : "Run AI sweep"}
+          <Eye className={`h-3 w-3 ${sweeping ? "animate-pulse" : ""}`} /> {sweeping ? "Analyzing…" : "Sweep now"}
         </button>
       </div>
       {suggestions.length > 0 && (
@@ -277,8 +279,12 @@ function TriageStrip({ suggestions, onPromote, onDismiss, onSweep, sweeping }: {
                   <button onClick={() => onPromote(s)} className="flex-1 inline-flex items-center justify-center gap-1 rounded bg-primary text-primary-foreground px-2 py-1 text-[10px] font-semibold hover:brightness-110">
                     <Check className="h-3 w-3" /> Promote
                   </button>
-                  <button onClick={() => onDismiss(s.id)} className="inline-flex items-center justify-center rounded border border-white/10 px-2 py-1 text-[10px] hover:bg-white/5">
+                  <button onClick={() => onDismiss(s.id)} title="Dismiss" className="inline-flex items-center justify-center rounded border border-white/10 px-2 py-1 text-[10px] hover:bg-white/5">
                     <X className="h-3 w-3" />
+                  </button>
+                  <button onClick={() => onMute(s)} title="Mute camera 24h (dirty / glare / fog)"
+                    className="inline-flex items-center justify-center rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 hover:bg-amber-500/20">
+                    <VolumeX className="h-3 w-3" />
                   </button>
                 </div>
               </div>
