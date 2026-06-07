@@ -133,6 +133,9 @@ function IncidentsPage() {
       {/* Triage strip */}
       <TriageStrip suggestions={suggestions} onPromote={onPromoteSug} onDismiss={async (id) => {
         await dismissSuggestion(id); qc.invalidateQueries({ queryKey: ["suggestions"] });
+      }} onMute={async (s) => {
+        try { await muteCamera(s.camera_id ?? "", s.camera_name, 24, "False positive (dirty/glare)"); toast.success("Camera muted for 24h"); qc.invalidateQueries({ queryKey: ["suggestions"] }); }
+        catch (e: any) { toast.error(e?.message ?? "Failed"); }
       }} onSweep={runSweep} sweeping={sweeping} />
 
       {/* Toolbar */}
