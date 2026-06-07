@@ -7,6 +7,8 @@ import { BASEMAPS } from "@/lib/basemaps";
 import { geocode } from "@/lib/geo";
 import { fetchCameras } from "@/lib/alertwest";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminSections } from "@/components/AdminSections";
+
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -124,8 +126,10 @@ function SettingsPage() {
       </header>
 
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+        <AdminSections />
         {/* Branding */}
         <Section title="Branding" description={authEmail ? "Synced to your account — your logo and colors follow you across devices." : "Saved on this device. Sign in to sync across devices."}>
+
           <div className="space-y-4 p-4">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-background">
