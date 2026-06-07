@@ -247,6 +247,47 @@ export type Database = {
           },
         ]
       }
+      incident_reports: {
+        Row: {
+          author: string | null
+          body: string
+          created_at: string
+          id: string
+          incident_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          incident_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          incident_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_reports_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incident_suggestions: {
         Row: {
           camera_id: string | null
