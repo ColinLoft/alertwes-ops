@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as IncidentsRouteImport } from './routes/incidents'
 import { Route as FleetRouteImport } from './routes/fleet'
 import { Route as DisasterRouteImport } from './routes/disaster'
@@ -22,6 +23,11 @@ import { Route as ApiPublicHooksSweepCamerasRouteImport } from './routes/api/pub
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IncidentsRoute = IncidentsRouteImport.update({
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/disaster': typeof DisasterRoute
   '/fleet': typeof FleetRoute
   '/incidents': typeof IncidentsRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
   '/api/public/hooks/sweep-cameras': typeof ApiPublicHooksSweepCamerasRoute
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/disaster': typeof DisasterRoute
   '/fleet': typeof FleetRoute
   '/incidents': typeof IncidentsRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
   '/api/public/hooks/sweep-cameras': typeof ApiPublicHooksSweepCamerasRoute
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/disaster': typeof DisasterRoute
   '/fleet': typeof FleetRoute
   '/incidents': typeof IncidentsRoute
+  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
   '/api/public/hooks/sweep-cameras': typeof ApiPublicHooksSweepCamerasRoute
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/disaster'
     | '/fleet'
     | '/incidents'
+    | '/reports'
     | '/settings'
     | '/api/planes'
     | '/api/public/hooks/sweep-cameras'
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/disaster'
     | '/fleet'
     | '/incidents'
+    | '/reports'
     | '/settings'
     | '/api/planes'
     | '/api/public/hooks/sweep-cameras'
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/disaster'
     | '/fleet'
     | '/incidents'
+    | '/reports'
     | '/settings'
     | '/api/planes'
     | '/api/public/hooks/sweep-cameras'
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   DisasterRoute: typeof DisasterRoute
   FleetRoute: typeof FleetRoute
   IncidentsRoute: typeof IncidentsRoute
+  ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   ApiPlanesRoute: typeof ApiPlanesRoute
   ApiPublicHooksSweepCamerasRoute: typeof ApiPublicHooksSweepCamerasRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/incidents': {
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   DisasterRoute: DisasterRoute,
   FleetRoute: FleetRoute,
   IncidentsRoute: IncidentsRoute,
+  ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   ApiPlanesRoute: ApiPlanesRoute,
   ApiPublicHooksSweepCamerasRoute: ApiPublicHooksSweepCamerasRoute,
@@ -230,3 +251,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
