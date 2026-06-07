@@ -82,7 +82,17 @@ function IncidentsPage() {
     if (!area) return all;
     return all.filter((h) => isInDetectionArea({ lat: h.lat, lng: h.lng }, area));
   }, [firms, area]);
-  const redFlagCount = nws?.alerts?.length ?? 0;
+
+  const filteredAlerts = useMemo(() => {
+    const all = nws?.alerts ?? [];
+    if (!area) return all;
+    return all.filter((a: any) => {
+      if (a.lat != null && a.lng != null && isInDetectionArea({ lat: a.lat, lng: a.lng }, area)) return true;
+      if (area.states?.length && a.states?.some((s: string) => area.states.includes(s))) return true;
+      return false;
+    });
+  }, [nws, area]);
+  const redFlagCount = filteredAlerts.length;
 
   // Radius filter for planes (only when area is in address/radius mode)
   const planesRadius = useMemo(() => {
