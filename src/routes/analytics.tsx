@@ -95,7 +95,7 @@ function AnalyticsPage() {
     const entries: Array<{ id: string; name: string; h: CameraHealth }> = [];
     for (const id in cameraHealth) {
       const h = cameraHealth[id];
-      if ((h.confirmed + h.false_positive) < 2) continue;
+      if ((h.confirmed + h.false_positives) < 2) continue;
       entries.push({ id, name: id, h });
     }
     return entries.sort((a, b) => a.h.score - b.h.score).slice(0, 8);
