@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, X, ShieldCheck, MapPin, UserCog, Search } from "lucide-react";
+import { Check, X, ShieldCheck, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, hasRole, type AppRole } from "@/lib/use-auth";
 import {
@@ -8,10 +8,19 @@ import {
   fetchResponseArea, saveResponseArea,
   type DetectionArea, type AreaMode,
 } from "@/lib/area";
-import { geocode } from "@/lib/geo";
+import { geocode, type GeocodeResult } from "@/lib/geo";
 import { toast } from "sonner";
 
 const ROLES: AppRole[] = ["admin", "dispatcher", "pilot", "maintenance"];
+const CA_COUNTIES = [
+  "Alameda", "Alpine", "Amador", "Butte", "Calaveras", "Colusa", "Contra Costa", "Del Norte", "El Dorado",
+  "Fresno", "Glenn", "Humboldt", "Imperial", "Inyo", "Kern", "Kings", "Lake", "Lassen", "Los Angeles",
+  "Madera", "Marin", "Mariposa", "Mendocino", "Merced", "Modoc", "Mono", "Monterey", "Napa", "Nevada",
+  "Orange", "Placer", "Plumas", "Riverside", "Sacramento", "San Benito", "San Bernardino", "San Diego",
+  "San Francisco", "San Joaquin", "San Luis Obispo", "San Mateo", "Santa Barbara", "Santa Clara", "Santa Cruz",
+  "Shasta", "Sierra", "Siskiyou", "Solano", "Sonoma", "Stanislaus", "Sutter", "Tehama", "Trinity", "Tulare",
+  "Tuolumne", "Ventura", "Yolo", "Yuba",
+];
 
 export function AdminSections() {
   const { roles } = useAuth();
@@ -65,32 +74,36 @@ function AreaSection({
   useEffect(() => { if (area) setLocal(area); }, [area]);
   if (!local) return null;
   const upd = (p: Partial<DetectionArea>) => setLocal({ ...local, ...p });
-  const csv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
-
   const setMode = (m: AreaMode) => upd({ mode: m });
 
-  const lookup = async () => {
-    if (!local.address?.trim()) return toast.error("Enter an address");
+  const resolveAddress = async (): Promise<GeocodeResult | null> => {
+    if (!local.address?.trim()) { toast.error("Enter an address"); return null; }
     setGeocoding(true);
     try {
       const r = await geocode(local.address);
-      if (!r) return toast.error("No results");
-      upd({ center_lat: r.lat, center_lng: r.lng, address: r.display_name });
-      toast.success("Address resolved");
-    } catch (e: any) { toast.error(e?.message ?? "Geocode failed"); }
+      if (!r) { toast.error("No results"); return null; }
+      return r;
+    } catch (e: any) { toast.error(e?.message ?? "Geocode failed"); return null; }
     finally { setGeocoding(false); }
   };
 
   const save = async () => {
     try {
+      let next = local;
+      if (local.mode === "address") {
+        const resolved = await resolveAddress();
+        if (!resolved) return;
+        next = { ...local, center_lat: resolved.lat, center_lng: resolved.lng, address: resolved.display_name };
+        setLocal(next);
+      }
       await saver({
-        mode: local.mode,
-        address: local.address,
-        center_lat: Number(local.center_lat),
-        center_lng: Number(local.center_lng),
-        radius_mi: Number(local.radius_mi),
-        states: local.states,
-        counties: local.counties,
+        mode: next.mode,
+        address: next.address,
+        center_lat: Number(next.center_lat),
+        center_lng: Number(next.center_lng),
+        radius_mi: Number(next.radius_mi),
+        states: next.mode === "region" ? ["CA"] : next.states,
+        counties: next.mode === "region" ? next.counties : next.counties,
       });
       qc.invalidateQueries({ queryKey: [queryKey] });
       toast.success(`${title} saved`);
@@ -112,46 +125,65 @@ function AreaSection({
       {local.mode === "address" ? (
         <>
           <Field label="Address">
-            <div className="flex gap-2">
+            <div>
               <input type="text" value={local.address ?? ""}
                 onChange={(e) => upd({ address: e.target.value })}
                 placeholder="123 Main St, Fresno CA"
-                className="flex-1 rounded-md border border-white/10 bg-background px-2 py-1.5 text-sm" />
-              <button onClick={lookup} disabled={geocoding}
-                className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 text-xs hover:bg-white/10 disabled:opacity-50">
-                <Search className="h-3 w-3" /> {geocoding ? "…" : "Find"}
-              </button>
+                className="w-full rounded-md border border-white/10 bg-background px-2 py-1.5 text-sm" />
             </div>
           </Field>
-          <div className="grid grid-cols-3 gap-2">
-            <Field label="Lat">
-              <input type="number" step="0.0001" value={local.center_lat}
-                onChange={(e) => upd({ center_lat: Number(e.target.value) })}
-                className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm font-mono" />
-            </Field>
-            <Field label="Lng">
-              <input type="number" step="0.0001" value={local.center_lng}
-                onChange={(e) => upd({ center_lng: Number(e.target.value) })}
-                className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm font-mono" />
-            </Field>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Field label="Radius (mi)">
               <input type="number" min={1} value={local.radius_mi}
                 onChange={(e) => upd({ radius_mi: Number(e.target.value) })}
                 className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm font-mono" />
             </Field>
+            <div className="flex items-end text-[11px] text-muted-foreground">
+              {Number.isFinite(Number(local.center_lat)) && Number.isFinite(Number(local.center_lng))
+                ? `Resolved center: ${Number(local.center_lat).toFixed(4)}, ${Number(local.center_lng).toFixed(4)}`
+                : "Use Find before saving a new address."}
+            </div>
           </div>
         </>
       ) : (
         <>
-          <Field label="States (comma-separated, e.g. CA,OR,WA)">
-            <input type="text" value={local.states.join(",")}
-              onChange={(e) => upd({ states: csv(e.target.value) })}
-              className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm" />
+          <Field label="State / country">
+            <select value={local.states[0] ?? "CA"}
+              onChange={() => upd({ states: ["CA"], counties: [] })}
+              className="w-full rounded-md border border-white/10 bg-background px-2 py-1.5 text-sm">
+              <option value="CA">California, USA</option>
+            </select>
           </Field>
-          <Field label="Counties (comma-separated, optional)">
-            <input type="text" value={local.counties.join(",")}
-              onChange={(e) => upd({ counties: csv(e.target.value) })}
-              className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm" />
+          <Field label="Counties">
+            <div className="max-h-52 overflow-y-auto rounded-md border border-white/10 bg-background p-2">
+              <div className="mb-2 flex items-center justify-between gap-2 border-b border-white/5 pb-2">
+                <span className="text-[11px] text-muted-foreground">
+                  {local.counties.length === 0 ? "All California counties" : `${local.counties.length} selected`}
+                </span>
+                <button type="button" onClick={() => upd({ counties: [] })}
+                  className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] hover:bg-white/10">
+                  Select all CA
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                {CA_COUNTIES.map((county) => {
+                  const checked = local.counties.includes(county);
+                  return (
+                    <label key={county} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-white/5">
+                      <input type="checkbox" checked={checked}
+                        onChange={(e) => upd({
+                          states: ["CA"],
+                          counties: e.target.checked
+                            ? [...local.counties, county]
+                            : local.counties.filter((c) => c !== county),
+                        })}
+                        className="h-3.5 w-3.5 accent-primary" />
+                      <span>{county}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </Field>
         </>
       )}
