@@ -7,6 +7,7 @@ import {
   ShieldAlert,
   Camera,
   FileText,
+  BarChart3,
   Settings as SettingsIcon,
   LogOut,
   Menu,
@@ -26,6 +27,7 @@ const PRIMARY: NavItem[] = [
   { title: "Bases", url: "/bases", icon: Warehouse },
   { title: "Disaster", url: "/disaster", icon: ShieldAlert },
   { title: "Reports", url: "/reports", icon: FileText },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ];
 
