@@ -146,13 +146,26 @@ function IncidentsPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-44px)] overflow-hidden">
+      {/* Sweep status panel */}
+      <SweepStatusPanel status={sweepStatus} inAreaCameras={inAreaCameras.length} pendingShown={suggestions.length} />
+
       {/* Triage strip */}
-      <TriageStrip suggestions={suggestions} onPromote={onPromoteSug} onDismiss={async (id) => {
-        await dismissSuggestion(id); qc.invalidateQueries({ queryKey: ["suggestions"] });
-      }} onMute={async (s) => {
-        try { await muteCamera(s.camera_id ?? "", s.camera_name, 24, "False positive (dirty/glare)"); toast.success("Camera muted for 24h"); qc.invalidateQueries({ queryKey: ["suggestions"] }); }
-        catch (e: any) { toast.error(e?.message ?? "Failed"); }
-      }} onSweep={runSweep} sweeping={sweeping} />
+      <TriageStrip
+        suggestions={suggestions}
+        cameraHealth={cameraHealth}
+        onConfirm={onPromoteSug}
+        onFalsePositive={async (s) => {
+          try { await markFalsePositive(s.id); toast.success("Marked false positive — will improve future sweeps"); qc.invalidateQueries({ queryKey: ["suggestions"] }); qc.invalidateQueries({ queryKey: ["camera_health"] }); }
+          catch (e: any) { toast.error(e?.message ?? "Failed"); }
+        }}
+        onDismiss={async (id) => { await dismissSuggestion(id); qc.invalidateQueries({ queryKey: ["suggestions"] }); }}
+        onMute={async (s) => {
+          try { await muteCamera(s.camera_id ?? "", s.camera_name, 24, "False positive (dirty/glare)"); toast.success("Camera muted for 24h"); qc.invalidateQueries({ queryKey: ["suggestions"] }); }
+          catch (e: any) { toast.error(e?.message ?? "Failed"); }
+        }}
+        onSweep={runSweep} sweeping={sweeping}
+      />
+
 
       {/* Toolbar */}
       <div className="px-3 py-2 border-b border-white/10 glass-subtle flex items-center gap-3 text-[11px]">
