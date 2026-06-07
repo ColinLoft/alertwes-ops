@@ -98,6 +98,39 @@ export type Database = {
         }
         Relationships: []
       }
+      detection_area: {
+        Row: {
+          center_lat: number
+          center_lng: number
+          counties: string[]
+          id: boolean
+          radius_mi: number
+          states: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          center_lat?: number
+          center_lng?: number
+          counties?: string[]
+          id?: boolean
+          radius_mi?: number
+          states?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          center_lat?: number
+          center_lng?: number
+          counties?: string[]
+          id?: boolean
+          radius_mi?: number
+          states?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       drones: {
         Row: {
           airframe_id: string | null
@@ -208,6 +241,69 @@ export type Database = {
           },
         ]
       }
+      incident_suggestions: {
+        Row: {
+          camera_id: string | null
+          camera_name: string | null
+          confidence: number
+          county: string | null
+          created_at: string
+          id: string
+          image_time: string | null
+          image_url: string | null
+          incident_id: string | null
+          label: Database["public"]["Enums"]["suggestion_label"]
+          lat: number
+          lng: number
+          reasoning: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source: string
+          state: string | null
+          status: Database["public"]["Enums"]["suggestion_status"]
+        }
+        Insert: {
+          camera_id?: string | null
+          camera_name?: string | null
+          confidence: number
+          county?: string | null
+          created_at?: string
+          id?: string
+          image_time?: string | null
+          image_url?: string | null
+          incident_id?: string | null
+          label: Database["public"]["Enums"]["suggestion_label"]
+          lat: number
+          lng: number
+          reasoning?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source: string
+          state?: string | null
+          status?: Database["public"]["Enums"]["suggestion_status"]
+        }
+        Update: {
+          camera_id?: string | null
+          camera_name?: string | null
+          confidence?: number
+          county?: string | null
+          created_at?: string
+          id?: string
+          image_time?: string | null
+          image_url?: string | null
+          incident_id?: string | null
+          label?: Database["public"]["Enums"]["suggestion_label"]
+          lat?: number
+          lng?: number
+          reasoning?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          state?: string | null
+          status?: Database["public"]["Enums"]["suggestion_status"]
+        }
+        Relationships: []
+      }
       incidents: {
         Row: {
           acreage: number | null
@@ -282,44 +378,6 @@ export type Database = {
           },
         ]
       }
-      maintenance_logs: {
-        Row: {
-          created_at: string
-          description: string
-          drone_id: string
-          hours_at: number | null
-          id: string
-          kind: Database["public"]["Enums"]["maint_kind"]
-          performed_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          description: string
-          drone_id: string
-          hours_at?: number | null
-          id?: string
-          kind?: Database["public"]["Enums"]["maint_kind"]
-          performed_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          drone_id?: string
-          hours_at?: number | null
-          id?: string
-          kind?: Database["public"]["Enums"]["maint_kind"]
-          performed_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "maintenance_logs_drone_id_fkey"
-            columns: ["drone_id"]
-            isOneToOne: false
-            referencedRelation: "drones"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_branding: {
         Row: {
           accent_color: string | null
@@ -342,6 +400,39 @@ export type Database = {
           brand_name?: string | null
           logo_data_url?: string | null
           primary_color?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          status: Database["public"]["Enums"]["profile_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          status?: Database["public"]["Enums"]["profile_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
           user_id?: string
         }
@@ -373,7 +464,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_user: {
+        Args: {
+          _role?: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
       claim_first_admin: { Args: never; Returns: undefined }
+      deny_user: { Args: { _user_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -381,6 +480,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "dispatcher" | "pilot" | "maintenance"
@@ -409,6 +509,9 @@ export type Database = {
         | "closed"
         | "false_positive"
       maint_kind: "scheduled" | "unscheduled" | "inspection"
+      profile_status: "pending" | "approved" | "denied"
+      suggestion_label: "smoke" | "fire" | "clear"
+      suggestion_status: "pending" | "promoted" | "dismissed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -558,6 +661,9 @@ export const Constants = {
         "false_positive",
       ],
       maint_kind: ["scheduled", "unscheduled", "inspection"],
+      profile_status: ["pending", "approved", "denied"],
+      suggestion_label: ["smoke", "fire", "clear"],
+      suggestion_status: ["pending", "promoted", "dismissed"],
     },
   },
 } as const
