@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, X, ShieldCheck, MapPin, Search } from "lucide-react";
+import { Check, X, ShieldCheck, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, hasRole, type AppRole } from "@/lib/use-auth";
 import {
@@ -76,28 +76,34 @@ function AreaSection({
   const upd = (p: Partial<DetectionArea>) => setLocal({ ...local, ...p });
   const setMode = (m: AreaMode) => upd({ mode: m });
 
-  const lookup = async () => {
+  const resolveAddress = async () => {
     if (!local.address?.trim()) return toast.error("Enter an address");
     setGeocoding(true);
     try {
       const r = await geocode(local.address);
       if (!r) return toast.error("No results");
-      upd({ center_lat: r.lat, center_lng: r.lng, address: r.display_name });
-      toast.success("Address resolved");
+      return r;
     } catch (e: any) { toast.error(e?.message ?? "Geocode failed"); }
     finally { setGeocoding(false); }
   };
 
   const save = async () => {
     try {
+      let next = local;
+      if (local.mode === "address") {
+        const resolved = await resolveAddress();
+        if (!resolved) return;
+        next = { ...local, center_lat: resolved.lat, center_lng: resolved.lng, address: resolved.display_name };
+        setLocal(next);
+      }
       await saver({
-        mode: local.mode,
-        address: local.address,
-        center_lat: Number(local.center_lat),
-        center_lng: Number(local.center_lng),
-        radius_mi: Number(local.radius_mi),
-        states: local.states,
-        counties: local.counties,
+        mode: next.mode,
+        address: next.address,
+        center_lat: Number(next.center_lat),
+        center_lng: Number(next.center_lng),
+        radius_mi: Number(next.radius_mi),
+        states: next.mode === "region" ? ["CA"] : next.states,
+        counties: next.mode === "region" ? next.counties : next.counties,
       });
       qc.invalidateQueries({ queryKey: [queryKey] });
       toast.success(`${title} saved`);
