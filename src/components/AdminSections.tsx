@@ -77,7 +77,7 @@ function AreaSection({
   const setMode = (m: AreaMode) => upd({ mode: m });
 
   const resolveAddress = async (): Promise<GeocodeResult | null> => {
-    if (!local.address?.trim()) return toast.error("Enter an address");
+    if (!local.address?.trim()) { toast.error("Enter an address"); return null; }
     setGeocoding(true);
     try {
       const r = await geocode(local.address);
