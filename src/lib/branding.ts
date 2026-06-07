@@ -19,7 +19,10 @@ export function useApplyBranding() {
     if (s.accentColor) {
       root.style.setProperty("--accent", s.accentColor);
     }
-  }, [s.primaryColor, s.accentColor]);
+    if (s.backgroundColor) {
+      root.style.setProperty("--background", s.backgroundColor);
+    }
+  }, [s.primaryColor, s.accentColor, s.backgroundColor]);
 }
 
 const BRAND_KEYS = ["brandName", "logoDataUrl", "primaryColor", "accentColor"] as const;
