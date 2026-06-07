@@ -17,6 +17,7 @@ import { Route as BasesRouteImport } from './routes/bases'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPlanesRouteImport } from './routes/api/planes'
+import { Route as ApiPublicHooksSweepCamerasRouteImport } from './routes/api/public/hooks/sweep-cameras'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -58,6 +59,12 @@ const ApiPlanesRoute = ApiPlanesRouteImport.update({
   path: '/api/planes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksSweepCamerasRoute =
+  ApiPublicHooksSweepCamerasRouteImport.update({
+    id: '/api/public/hooks/sweep-cameras',
+    path: '/api/public/hooks/sweep-cameras',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/incidents': typeof IncidentsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
+  '/api/public/hooks/sweep-cameras': typeof ApiPublicHooksSweepCamerasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +86,7 @@ export interface FileRoutesByTo {
   '/incidents': typeof IncidentsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
+  '/api/public/hooks/sweep-cameras': typeof ApiPublicHooksSweepCamerasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +98,7 @@ export interface FileRoutesById {
   '/incidents': typeof IncidentsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
+  '/api/public/hooks/sweep-cameras': typeof ApiPublicHooksSweepCamerasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
     | '/incidents'
     | '/settings'
     | '/api/planes'
+    | '/api/public/hooks/sweep-cameras'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/incidents'
     | '/settings'
     | '/api/planes'
+    | '/api/public/hooks/sweep-cameras'
   id:
     | '__root__'
     | '/'
@@ -121,6 +133,7 @@ export interface FileRouteTypes {
     | '/incidents'
     | '/settings'
     | '/api/planes'
+    | '/api/public/hooks/sweep-cameras'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +145,7 @@ export interface RootRouteChildren {
   IncidentsRoute: typeof IncidentsRoute
   SettingsRoute: typeof SettingsRoute
   ApiPlanesRoute: typeof ApiPlanesRoute
+  ApiPublicHooksSweepCamerasRoute: typeof ApiPublicHooksSweepCamerasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPlanesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/sweep-cameras': {
+      id: '/api/public/hooks/sweep-cameras'
+      path: '/api/public/hooks/sweep-cameras'
+      fullPath: '/api/public/hooks/sweep-cameras'
+      preLoaderRoute: typeof ApiPublicHooksSweepCamerasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,7 +225,18 @@ const rootRouteChildren: RootRouteChildren = {
   IncidentsRoute: IncidentsRoute,
   SettingsRoute: SettingsRoute,
   ApiPlanesRoute: ApiPlanesRoute,
+  ApiPublicHooksSweepCamerasRoute: ApiPublicHooksSweepCamerasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
