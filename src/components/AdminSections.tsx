@@ -8,7 +8,7 @@ import {
   fetchResponseArea, saveResponseArea,
   type DetectionArea, type AreaMode,
 } from "@/lib/area";
-import { geocode } from "@/lib/geo";
+import { geocode, type GeocodeResult } from "@/lib/geo";
 import { toast } from "sonner";
 
 const ROLES: AppRole[] = ["admin", "dispatcher", "pilot", "maintenance"];
@@ -76,14 +76,14 @@ function AreaSection({
   const upd = (p: Partial<DetectionArea>) => setLocal({ ...local, ...p });
   const setMode = (m: AreaMode) => upd({ mode: m });
 
-  const resolveAddress = async () => {
+  const resolveAddress = async (): Promise<GeocodeResult | null> => {
     if (!local.address?.trim()) return toast.error("Enter an address");
     setGeocoding(true);
     try {
       const r = await geocode(local.address);
-      if (!r) return toast.error("No results");
+      if (!r) { toast.error("No results"); return null; }
       return r;
-    } catch (e: any) { toast.error(e?.message ?? "Geocode failed"); }
+    } catch (e: any) { toast.error(e?.message ?? "Geocode failed"); return null; }
     finally { setGeocoding(false); }
   };
 
@@ -125,15 +125,11 @@ function AreaSection({
       {local.mode === "address" ? (
         <>
           <Field label="Address">
-            <div className="flex gap-2">
+            <div>
               <input type="text" value={local.address ?? ""}
                 onChange={(e) => upd({ address: e.target.value })}
                 placeholder="123 Main St, Fresno CA"
-                className="flex-1 rounded-md border border-white/10 bg-background px-2 py-1.5 text-sm" />
-              <button onClick={lookup} disabled={geocoding}
-                className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 text-xs hover:bg-white/10 disabled:opacity-50">
-                <Search className="h-3 w-3" /> {geocoding ? "…" : "Find"}
-              </button>
+                className="w-full rounded-md border border-white/10 bg-background px-2 py-1.5 text-sm" />
             </div>
           </Field>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
