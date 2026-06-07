@@ -1,22 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Crosshair, Flame, Loader2, LogIn, LogOut, MapPin, RotateCcw, Trash2 } from "lucide-react";
-import { DEFAULT_SETTINGS, useSettings, type Basemap, type Settings } from "@/lib/settings";
-import { BASEMAPS } from "@/lib/basemaps";
-import { geocode } from "@/lib/geo";
-import { fetchCameras } from "@/lib/alertwest";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Flame, ShieldOff, VolumeX } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSettings, type Settings } from "@/lib/settings";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminSections } from "@/components/AdminSections";
-
+import { useAuth, hasRole } from "@/lib/use-auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — ALERTWest Map" },
-      { name: "description", content: "Configure refresh cadence, marker style, and which cameras to display on the ALERTWest map." },
-      { property: "og:title", content: "Settings — ALERTWest Map" },
-      { property: "og:description", content: "Configure refresh cadence, marker style, and which cameras to display on the ALERTWest map." },
+      { title: "Settings — Aegis CAD" },
+      { name: "description", content: "Configure the monitored detection area, branding, and user access." },
     ],
   }),
   component: SettingsPage,
@@ -24,683 +20,156 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const [settings, setSettings] = useSettings();
-  const [authEmail, setAuthEmail] = useState<string | null>(null);
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setAuthEmail(data.session?.user.email ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) =>
-      setAuthEmail(s?.user.email ?? null),
-    );
-    return () => sub.subscription.unsubscribe();
-  }, []);
-  const { data: cameras = [] } = useQuery({
-    queryKey: ["aw-cameras"],
-    queryFn: fetchCameras,
-    staleTime: 5 * 60_000,
-  });
-
-  const states = useMemo(() => {
-    const s = new Set<string>();
-    for (const cam of cameras) if (cam.site.state) s.add(cam.site.state);
-    return [...s].sort();
-  }, [cameras]);
-
-  // Counties for camera filter — limited to selected camera states (or all if none picked).
-  const counties = useMemo(() => {
-    const allowed = new Set(settings.states.map((x) => x.toLowerCase()));
-    const c = new Set<string>();
-    for (const cam of cameras) {
-      if (!cam.site.county) continue;
-      if (allowed.size && !(cam.site.state && allowed.has(cam.site.state.toLowerCase()))) continue;
-      c.add(cam.site.county);
-    }
-    return [...c].sort();
-  }, [cameras, settings.states]);
-
-  // Counties for plane filter — limited to selected plane states (or all if none picked).
-  const planeCounties = useMemo(() => {
-    const allowed = new Set(settings.planesStates.map((x) => x.toLowerCase()));
-    const c = new Set<string>();
-    for (const cam of cameras) {
-      if (!cam.site.county) continue;
-      if (allowed.size && !(cam.site.state && allowed.has(cam.site.state.toLowerCase()))) continue;
-      c.add(cam.site.county);
-    }
-    return [...c].sort();
-  }, [cameras, settings.planesStates]);
-
-  const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
-    setSettings((p) => ({ ...p, [key]: value }));
-
-  const toggleArr = (key: "states" | "counties" | "planesStates" | "planesCounties", value: string) => {
-    setSettings((p) => {
-      const has = p[key].includes(value);
-      return { ...p, [key]: has ? p[key].filter((v) => v !== value) : [...p[key], value] };
-    });
-  };
+  const { roles } = useAuth();
+  const isAdmin = hasRole(roles, "admin");
+  const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setSettings((p) => ({ ...p, [k]: v }));
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Flame className="h-5 w-5 text-primary" />
-            <div>
-              <div className="text-sm font-bold tracking-wide">
-                ALERT<span className="text-primary">West</span> Settings
-              </div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                Map preferences & camera filters
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {authEmail ? (
-              <>
-                <span className="hidden sm:inline text-[11px] text-muted-foreground max-w-[160px] truncate">
-                  {authEmail}
-                </span>
-                <button
-                  onClick={() => supabase.auth.signOut()}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
-                >
-                  <LogOut className="h-3.5 w-3.5" /> Sign out
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/auth"
-                className="inline-flex items-center gap-1.5 rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20"
-              >
-                <LogIn className="h-3.5 w-3.5" /> Sign in to sync
-              </Link>
-            )}
-            <Link
-              to="/"
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Back to map
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-        <AdminSections />
-        {/* Branding */}
-        <Section title="Branding" description={authEmail ? "Synced to your account — your logo and colors follow you across devices." : "Saved on this device. Sign in to sync across devices."}>
-
-          <div className="space-y-4 p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-background">
-                {settings.logoDataUrl ? (
-                  <img src={settings.logoDataUrl} alt="Custom logo" className="h-full w-full object-contain" />
-                ) : (
-                  <Flame className="h-7 w-7 text-primary" />
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground">
-                  Upload logo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      if (file.size > 512 * 1024) {
-                        alert("Please pick a logo under 512 KB.");
-                        return;
-                      }
-                      const reader = new FileReader();
-                      reader.onload = () => set("logoDataUrl", String(reader.result));
-                      reader.readAsDataURL(file);
-                    }}
-                  />
-                </label>
-                {settings.logoDataUrl && (
-                  <button
-                    onClick={() => set("logoDataUrl", null)}
-                    className="text-[11px] text-muted-foreground hover:text-foreground"
-                  >
-                    Remove logo
-                  </button>
-                )}
-              </div>
-            </div>
-            <Row label="Brand name" hint="Shown in the header next to the logo.">
-              <input
-                type="text"
-                value={settings.brandName}
-                onChange={(e) => set("brandName", e.target.value.slice(0, 32))}
-                className="w-44 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-primary"
-              />
-            </Row>
-            <Row label="Primary color" hint="Drives buttons, highlights, and active states.">
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={settings.primaryColor}
-                  onChange={(e) => set("primaryColor", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent"
-                />
-                <input
-                  type="text"
-                  value={settings.primaryColor}
-                  onChange={(e) => set("primaryColor", e.target.value)}
-                  className="w-24 rounded-md border border-border bg-background px-2 py-1 text-xs font-mono outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </Row>
-            <Row label="Accent color" hint="Used for subtle hover states and overlays.">
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={settings.accentColor}
-                  onChange={(e) => set("accentColor", e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent"
-                />
-                <input
-                  type="text"
-                  value={settings.accentColor}
-                  onChange={(e) => set("accentColor", e.target.value)}
-                  className="w-24 rounded-md border border-border bg-background px-2 py-1 text-xs font-mono outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </Row>
-          </div>
-        </Section>
-
-        {/* General */}
-        <Section title="General" description="How the map behaves while you watch it.">
-          <Row label="Auto-refresh interval" hint={`${settings.refreshSeconds}s between automatic data fetches.`}>
-            <NumberInput
-              value={settings.refreshSeconds}
-              min={15}
-              max={600}
-              step={15}
-              suffix="s"
-              onChange={(v) => set("refreshSeconds", v)}
-            />
-          </Row>
-          <Row label="Timeline play speed" hint="Delay between frames when timeline playback is on.">
-            <NumberInput
-              value={settings.playIntervalMs}
-              min={250}
-              max={10_000}
-              step={250}
-              suffix="ms"
-              onChange={(v) => set("playIntervalMs", v)}
-            />
-          </Row>
-          <Row label="Default map zoom" hint="Initial zoom level (1 world → 18 street).">
-            <NumberInput
-              value={settings.defaultZoom}
-              min={3}
-              max={14}
-              step={1}
-              onChange={(v) => set("defaultZoom", v)}
-            />
-          </Row>
-          <Toggle
-            label="Show camera view lines"
-            hint="Render the dashed line that indicates where the selected camera is looking."
-            checked={settings.showViewLines}
-            onChange={(v) => set("showViewLines", v)}
-          />
-          <Toggle
-            label="Pulse animation on live markers"
-            hint="Adds a ripple effect on cameras reporting fresh data."
-            checked={settings.showMarkerPulse}
-            onChange={(v) => set("showMarkerPulse", v)}
-          />
-          <Toggle
-            label="Auto-open the nearest camera"
-            hint="After setting a radius below, automatically select the closest camera."
-            checked={settings.autoOpenNearest}
-            onChange={(v) => set("autoOpenNearest", v)}
-          />
-        </Section>
-
-        {/* Map & Overlays */}
-        <Section title="Map style" description="Pick the basemap and what overlays to show.">
-          <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
-            {Object.values(BASEMAPS).map((b) => {
-              const on = settings.basemap === b.id;
-              return (
-                <button
-                  key={b.id}
-                  onClick={() => set("basemap", b.id as Basemap)}
-                  aria-pressed={on}
-                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                    on
-                      ? "border-primary bg-primary/15 text-primary"
-                      : "border-border bg-background text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {b.label}
-                </button>
-              );
-            })}
-          </div>
-          <Toggle
-            label="Show place labels"
-            hint="Overlay city and road labels on top of the basemap (when supported)."
-            checked={settings.showLabels}
-            onChange={(v) => set("showLabels", v)}
-          />
-        </Section>
-
-        {/* Aircraft overlay */}
-        <Section title="Aircraft overlay" description="Live planes overhead, sourced from ADS-B / OpenSky.">
-          <Toggle
-            label="Show planes on the map"
-            hint="Render a marker for every aircraft currently in the visible map area."
-            checked={settings.showPlanes}
-            onChange={(v) => set("showPlanes", v)}
-          />
-          <Row label="Aircraft refresh interval" hint={`${settings.planesRefreshSeconds}s between aircraft updates (min 10s).`}>
-            <NumberInput
-              value={settings.planesRefreshSeconds}
-              min={10}
-              max={300}
-              step={5}
-              suffix="s"
-              onChange={(v) => set("planesRefreshSeconds", v)}
-            />
-          </Row>
-        </Section>
-
-        {/* Planes radius (independent from cameras) */}
-        <Section
-          title="Planes radius from address"
-          description="Optional — only show aircraft within a distance of a place. Independent of the camera radius."
-        >
-          <RadiusEditor
-            settings={settings}
-            setSettings={setSettings}
-            field="planesRadius"
-            placeholder="Airport, city, or address for aircraft"
-          />
-        </Section>
-
-        {/* Radius */}
-        <Section
-          title="Radius from address"
-          description="Limit cameras to those within a distance of a place. Geocoded via OpenStreetMap."
-        >
-          <RadiusEditor settings={settings} setSettings={setSettings} />
-        </Section>
-
-        {/* Planes states */}
-        <Section
-          title={`Planes — states (${settings.planesStates.length || "all"})`}
-          description="Only show aircraft over selected states. Combine with counties/radius for tighter scope."
-        >
-          <ChipGrid
-            options={states}
-            selected={settings.planesStates}
-            onToggle={(v) => toggleArr("planesStates", v)}
-            onClear={() => set("planesStates", [])}
-            empty="No state data loaded yet."
-          />
-        </Section>
-
-        {/* Planes counties */}
-        <Section
-          title={`Planes — counties (${settings.planesCounties.length || "all"})`}
-          description="Counties listed here are scoped to the plane states above."
-        >
-          <ChipGrid
-            options={planeCounties}
-            selected={settings.planesCounties}
-            onToggle={(v) => toggleArr("planesCounties", v)}
-            onClear={() => set("planesCounties", [])}
-            empty="Pick a plane state first to see its counties."
-          />
-        </Section>
-
-        {/* States */}
-        <Section
-          title={`States (${settings.states.length || "all"})`}
-          description="Pick one or more states. Leave empty to show every state."
-        >
-          <ChipGrid
-            options={states}
-            selected={settings.states}
-            onToggle={(v) => toggleArr("states", v)}
-            onClear={() => set("states", [])}
-            empty="No state data loaded yet."
-          />
-        </Section>
-
-        {/* Counties */}
-        <Section
-          title={`Counties (${settings.counties.length || "all"})`}
-          description="Counties listed here are scoped to the camera states above."
-        >
-          <ChipGrid
-            options={counties}
-            selected={settings.counties}
-            onToggle={(v) => toggleArr("counties", v)}
-            onClear={() => set("counties", [])}
-            empty="No county data loaded yet."
-          />
-        </Section>
-
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-card/30 p-4 backdrop-blur-xl">
+    <div className="min-h-[calc(100vh-72px)] bg-background text-foreground">
+      <div className="mx-auto max-w-3xl space-y-5 px-4 py-6">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium">Reset all settings</div>
-            <div className="text-xs text-muted-foreground">Restore defaults (CA, 60s refresh, view lines on).</div>
+            <h1 className="text-xl font-bold tracking-tight">Settings</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isAdmin
+                ? "Configure the detection area, brand identity, and approved operators."
+                : "Admin-only configuration. Contact an administrator to change the detection area or grant roles."}
+            </p>
           </div>
-          <button
-            onClick={() => setSettings(DEFAULT_SETTINGS)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
-          >
-            <RotateCcw className="h-3.5 w-3.5" /> Reset
-          </button>
+          <Link to="/incidents"
+            className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10">
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to CAD
+          </Link>
         </div>
-      </main>
+
+        {!isAdmin && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
+            <ShieldOff className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-muted-foreground">
+              You currently have no admin role. Settings are read-only for non-admins.
+            </div>
+          </div>
+        )}
+
+        {/* Admin: detection area + users (the single area monitored by cameras, planes, and AI) */}
+        <AdminSections />
+
+        {isAdmin && <MutedCamerasSection />}
+
+        <BrandingSection settings={settings} set={set} />
+      </div>
     </div>
   );
 }
 
-/* ---------- Sections & primitives ---------- */
-
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
+function BrandingSection({ settings, set }: { settings: Settings; set: <K extends keyof Settings>(k: K, v: Settings[K]) => void }) {
   return (
     <section className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-xl">
       <div className="border-b border-white/5 px-4 py-3">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+        <h2 className="text-sm font-semibold">Branding</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">Logo and name shown in the top bar.</p>
       </div>
-      <div className="divide-y divide-white/5">{children}</div>
+      <div className="space-y-4 p-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-background">
+            {settings.logoDataUrl
+              ? <img src={settings.logoDataUrl} alt="Logo" className="h-full w-full object-contain" />
+              : <Flame className="h-7 w-7 text-primary" />}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium hover:bg-white/10">
+              Upload logo
+              <input type="file" accept="image/*" className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 512 * 1024) { toast.error("Logo must be under 512 KB"); return; }
+                  const r = new FileReader();
+                  r.onload = () => set("logoDataUrl", String(r.result));
+                  r.readAsDataURL(file);
+                }} />
+            </label>
+            {settings.logoDataUrl && (
+              <button onClick={() => set("logoDataUrl", null)}
+                className="text-[11px] text-muted-foreground hover:text-foreground">Remove logo</button>
+            )}
+          </div>
+        </div>
+        <label className="block space-y-1">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Brand name</div>
+          <input type="text" value={settings.brandName}
+            onChange={(e) => set("brandName", e.target.value.slice(0, 32))}
+            className="w-full sm:w-64 rounded-md border border-white/10 bg-background px-2 py-1.5 text-sm" />
+        </label>
+      </div>
     </section>
   );
 }
 
-function Row({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="text-sm">{label}</div>
-        {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
-      </div>
-      <div className="shrink-0">{children}</div>
-    </div>
-  );
-}
+interface MutedRow { camera_id: string; camera_name: string | null; reason: string | null; muted_until: string; created_at: string }
 
-function NumberInput({
-  value,
-  onChange,
-  min,
-  max,
-  step = 1,
-  suffix,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  min?: number;
-  max?: number;
-  step?: number;
-  suffix?: string;
-}) {
-  return (
-    <label className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-sm focus-within:ring-2 focus-within:ring-primary">
-      <input
-        type="number"
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(e) => {
-          const n = Number(e.target.value);
-          if (Number.isFinite(n)) onChange(n);
-        }}
-        className="w-20 bg-transparent text-right outline-none"
-      />
-      {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
-    </label>
-  );
-}
+function MutedCamerasSection() {
+  const qc = useQueryClient();
+  const { data: rows = [] } = useQuery<MutedRow[]>({
+    queryKey: ["muted_cameras"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("muted_cameras")
+        .select("*")
+        .gte("muted_until", new Date().toISOString())
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as MutedRow[];
+    },
+  });
 
-function Toggle({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="text-sm">{label}</div>
-        {hint && <div className="text-xs text-muted-foreground">{hint}</div>}
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        onClick={() => onChange(!checked)}
-        className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-          checked ? "border-primary bg-primary" : "border-border bg-muted"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-background transition-transform ${
-            checked ? "translate-x-[18px]" : "translate-x-0.5"
-          }`}
-        />
-      </button>
-    </div>
-  );
-}
+  useEffect(() => {
+    const ch = supabase.channel("mc")
+      .on("postgres_changes", { event: "*", schema: "public", table: "muted_cameras" },
+        () => qc.invalidateQueries({ queryKey: ["muted_cameras"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
 
-function ChipGrid({
-  options,
-  selected,
-  onToggle,
-  onClear,
-  empty,
-}: {
-  options: string[];
-  selected: string[];
-  onToggle: (v: string) => void;
-  onClear: () => void;
-  empty: string;
-}) {
-  if (options.length === 0) {
-    return <div className="px-4 py-6 text-center text-xs text-muted-foreground">{empty}</div>;
-  }
-  return (
-    <div className="space-y-2 p-3">
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((o) => {
-          const on = selected.includes(o);
-          return (
-            <button
-              key={o}
-              onClick={() => onToggle(o)}
-              aria-pressed={on}
-              className={`rounded-full border px-2.5 py-1 text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                on
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-border bg-background text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {o}
-            </button>
-          );
-        })}
-      </div>
-      {selected.length > 0 && (
-        <button
-          onClick={onClear}
-          className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-        >
-          <Trash2 className="h-3 w-3" /> Clear selection
-        </button>
-      )}
-    </div>
-  );
-}
-
-function RadiusEditor({
-  settings,
-  setSettings,
-  field = "radius",
-  placeholder = "Address, city, or place name",
-}: {
-  settings: Settings;
-  setSettings: (s: Settings | ((p: Settings) => Settings)) => void;
-  field?: "radius" | "planesRadius";
-  placeholder?: string;
-}) {
-  const current = settings[field];
-  const [address, setAddress] = useState(current?.address ?? "");
-  const [km, setKm] = useState(current?.km ?? 50);
-  const [status, setStatus] = useState<"idle" | "loading" | "error" | "notfound">("idle");
-
-  const apply = async () => {
-    if (!address.trim()) return;
-    setStatus("loading");
-    try {
-      const result = await geocode(address.trim());
-      if (!result) {
-        setStatus("notfound");
-        return;
-      }
-      setSettings((p) => ({
-        ...p,
-        [field]: { address: result.display_name, lat: result.lat, lng: result.lng, km },
-      }));
-      setAddress(result.display_name);
-      setStatus("idle");
-    } catch {
-      setStatus("error");
-    }
-  };
-
-  const useMyLocation = () => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setStatus("error");
-      return;
-    }
-    setStatus("loading");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setSettings((p) => ({
-          ...p,
-          [field]: { address: "My current location", lat: pos.coords.latitude, lng: pos.coords.longitude, km },
-        }));
-        setAddress("My current location");
-        setStatus("idle");
-      },
-      () => setStatus("error"),
-      { timeout: 8000 },
-    );
+  const unmute = async (id: string) => {
+    const { error } = await supabase.from("muted_cameras").delete().eq("camera_id", id);
+    if (error) toast.error(error.message); else toast.success("Camera un-muted");
   };
 
   return (
-    <div className="space-y-3 p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex min-w-[240px] flex-1 items-center gap-2 rounded-md border border-border bg-background px-2 py-1.5 focus-within:ring-2 focus-within:ring-primary">
-          <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                apply();
-              }
-            }}
-            placeholder={placeholder}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </label>
-        <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-sm">
-          <input
-            type="number"
-            min={1}
-            max={2000}
-            step={1}
-            value={km}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              if (Number.isFinite(n)) setKm(n);
-            }}
-            className="w-16 bg-transparent text-right outline-none"
-          />
-          <span className="text-xs text-muted-foreground">mi</span>
-        </div>
-        <button
-          onClick={apply}
-          disabled={status === "loading" || !address.trim()}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          {status === "loading" ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Crosshair className="h-3.5 w-3.5" />
-          )}
-          Apply
-        </button>
-        <button
-          onClick={useMyLocation}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          Use my location
-        </button>
+    <section className="rounded-xl border border-white/10 bg-card/30 backdrop-blur-xl">
+      <div className="border-b border-white/5 px-4 py-3">
+        <h2 className="text-sm font-semibold flex items-center gap-2">
+          <VolumeX className="h-3.5 w-3.5 text-amber-400" /> Muted cameras
+        </h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Cameras here are excluded from AI sweeps. Use this when a camera produces repeated false positives (dirty lens, persistent glare, fog).
+        </p>
       </div>
-
-      {status === "notfound" && (
-        <div className="text-xs text-amber-400">Couldn't find that address. Try another spelling.</div>
-      )}
-      {status === "error" && (
-        <div className="text-xs text-destructive">Lookup failed. Check your connection or try again.</div>
-      )}
-
-      {current && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-background p-3 text-xs">
-          <div className="min-w-0 flex-1">
-            <div className="truncate font-medium text-foreground">{current.address}</div>
-            <div className="text-muted-foreground">
-              {current.lat.toFixed(4)}, {current.lng.toFixed(4)} · within {current.km} mi
-            </div>
-          </div>
-          <button
-            onClick={() => setSettings((p) => ({ ...p, [field]: null }))}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-muted-foreground hover:text-foreground"
-          >
-            <Trash2 className="h-3 w-3" /> Remove
-          </button>
-        </div>
-      )}
-    </div>
+      <div className="p-2">
+        {rows.length === 0 ? (
+          <div className="px-3 py-6 text-center text-xs text-muted-foreground">No muted cameras.</div>
+        ) : (
+          <table className="cad-table">
+            <thead><tr><th>Camera</th><th>Reason</th><th>Until</th><th className="text-right">Action</th></tr></thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.camera_id}>
+                  <td className="text-foreground">{r.camera_name ?? r.camera_id}</td>
+                  <td className="text-muted-foreground">{r.reason ?? "—"}</td>
+                  <td className="font-mono text-[10.5px] text-muted-foreground">{new Date(r.muted_until).toLocaleString()}</td>
+                  <td className="text-right">
+                    <button onClick={() => unmute(r.camera_id)}
+                      className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] hover:bg-white/10">
+                      Un-mute
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
   );
 }
