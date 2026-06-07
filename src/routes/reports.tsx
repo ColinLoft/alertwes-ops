@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Search, FileText, X, Trash2, Save } from "lucide-react";
+import { Plus, Search, FileText, X, Trash2, Save, MapPin, Activity, Flame, Gauge } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchIncidents, STATUS_META, PRIORITY_META, type IncidentRow } from "@/lib/incidents";
+import { fetchIncidents, fetchIncidentEvents, STATUS_META, PRIORITY_META, type IncidentRow, type IncidentEvent } from "@/lib/incidents";
 import { useAuth } from "@/lib/use-auth";
 
 export const Route = createFileRoute("/reports")({
