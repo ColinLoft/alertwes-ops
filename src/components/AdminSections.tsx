@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, X, ShieldCheck, MapPin, Plus, UserCog } from "lucide-react";
+import { Check, X, ShieldCheck, MapPin, UserCog, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, hasRole, type AppRole } from "@/lib/use-auth";
-import { fetchDetectionArea, saveDetectionArea, type DetectionArea } from "@/lib/area";
+import {
+  fetchDetectionArea, saveDetectionArea,
+  fetchResponseArea, saveResponseArea,
+  type DetectionArea, type AreaMode,
+} from "@/lib/area";
+import { geocode } from "@/lib/geo";
 import { toast } from "sonner";
 
 const ROLES: AppRole[] = ["admin", "dispatcher", "pilot", "maintenance"];
@@ -13,7 +18,20 @@ export function AdminSections() {
   if (!hasRole(roles, "admin")) return null;
   return (
     <>
-      <DetectionAreaSection />
+      <AreaSection
+        title="Detection area"
+        desc="Cameras, planes & AI sweeps only fire incidents inside this area."
+        queryKey="detection_area"
+        fetcher={fetchDetectionArea}
+        saver={saveDetectionArea}
+      />
+      <AreaSection
+        title="Disaster response area"
+        desc="Used by the Disaster Response tab to filter quakes, alerts and active responses."
+        queryKey="response_area"
+        fetcher={fetchResponseArea}
+        saver={saveResponseArea}
+      />
       <UsersSection />
     </>
   );
@@ -33,68 +51,115 @@ function Card({ title, desc, children }: { title: string; desc: string; children
   );
 }
 
-function DetectionAreaSection() {
+function AreaSection({
+  title, desc, queryKey, fetcher, saver,
+}: {
+  title: string; desc: string; queryKey: string;
+  fetcher: () => Promise<DetectionArea>;
+  saver: (p: Partial<DetectionArea>) => Promise<void>;
+}) {
   const qc = useQueryClient();
-  const { data: area } = useQuery<DetectionArea>({
-    queryKey: ["detection_area"],
-    queryFn: fetchDetectionArea,
-  });
+  const { data: area } = useQuery<DetectionArea>({ queryKey: [queryKey], queryFn: fetcher });
   const [local, setLocal] = useState<DetectionArea | null>(null);
+  const [geocoding, setGeocoding] = useState(false);
   useEffect(() => { if (area) setLocal(area); }, [area]);
-
   if (!local) return null;
   const upd = (p: Partial<DetectionArea>) => setLocal({ ...local, ...p });
   const csv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
+  const setMode = (m: AreaMode) => upd({ mode: m });
+
+  const lookup = async () => {
+    if (!local.address?.trim()) return toast.error("Enter an address");
+    setGeocoding(true);
+    try {
+      const r = await geocode(local.address);
+      if (!r) return toast.error("No results");
+      upd({ center_lat: r.lat, center_lng: r.lng, address: r.display_name });
+      toast.success("Address resolved");
+    } catch (e: any) { toast.error(e?.message ?? "Geocode failed"); }
+    finally { setGeocoding(false); }
+  };
+
   const save = async () => {
     try {
-      await saveDetectionArea({
+      await saver({
+        mode: local.mode,
+        address: local.address,
         center_lat: Number(local.center_lat),
         center_lng: Number(local.center_lng),
         radius_mi: Number(local.radius_mi),
         states: local.states,
         counties: local.counties,
       });
-      qc.invalidateQueries({ queryKey: ["detection_area"] });
-      toast.success("Detection area saved");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Save failed");
-    }
+      qc.invalidateQueries({ queryKey: [queryKey] });
+      toast.success(`${title} saved`);
+    } catch (e: any) { toast.error(e?.message ?? "Save failed"); }
   };
 
   return (
-    <Card title="Detection area" desc="Incidents and AI camera detections only fire inside this area. A camera qualifies if it's inside the radius OR matches a listed state/county.">
-      <div className="grid grid-cols-3 gap-2">
-        <Field label="Center lat">
-          <input type="number" step="0.001" value={local.center_lat}
-            onChange={(e) => upd({ center_lat: Number(e.target.value) })}
-            className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm font-mono" />
-        </Field>
-        <Field label="Center lng">
-          <input type="number" step="0.001" value={local.center_lng}
-            onChange={(e) => upd({ center_lng: Number(e.target.value) })}
-            className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm font-mono" />
-        </Field>
-        <Field label="Radius (mi)">
-          <input type="number" min={0} value={local.radius_mi}
-            onChange={(e) => upd({ radius_mi: Number(e.target.value) })}
-            className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm font-mono" />
-        </Field>
+    <Card title={title} desc={desc}>
+      {/* Mode tabs */}
+      <div className="inline-flex rounded-md border border-white/10 bg-white/5 p-0.5 text-[11px]">
+        {(["address", "region"] as AreaMode[]).map((m) => (
+          <button key={m} onClick={() => setMode(m)}
+            className={`px-3 py-1 rounded ${local.mode === m ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}`}>
+            {m === "address" ? "Address + radius" : "State / county"}
+          </button>
+        ))}
       </div>
-      <Field label="States (comma-separated, e.g. CA,OR,WA)">
-        <input type="text" value={local.states.join(",")}
-          onChange={(e) => upd({ states: csv(e.target.value) })}
-          className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm" />
-      </Field>
-      <Field label="Counties (comma-separated, optional)">
-        <input type="text" value={local.counties.join(",")}
-          onChange={(e) => upd({ counties: csv(e.target.value) })}
-          className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm" />
-      </Field>
+
+      {local.mode === "address" ? (
+        <>
+          <Field label="Address">
+            <div className="flex gap-2">
+              <input type="text" value={local.address ?? ""}
+                onChange={(e) => upd({ address: e.target.value })}
+                placeholder="123 Main St, Fresno CA"
+                className="flex-1 rounded-md border border-white/10 bg-background px-2 py-1.5 text-sm" />
+              <button onClick={lookup} disabled={geocoding}
+                className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-3 text-xs hover:bg-white/10 disabled:opacity-50">
+                <Search className="h-3 w-3" /> {geocoding ? "…" : "Find"}
+              </button>
+            </div>
+          </Field>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="Lat">
+              <input type="number" step="0.0001" value={local.center_lat}
+                onChange={(e) => upd({ center_lat: Number(e.target.value) })}
+                className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm font-mono" />
+            </Field>
+            <Field label="Lng">
+              <input type="number" step="0.0001" value={local.center_lng}
+                onChange={(e) => upd({ center_lng: Number(e.target.value) })}
+                className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm font-mono" />
+            </Field>
+            <Field label="Radius (mi)">
+              <input type="number" min={1} value={local.radius_mi}
+                onChange={(e) => upd({ radius_mi: Number(e.target.value) })}
+                className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm font-mono" />
+            </Field>
+          </div>
+        </>
+      ) : (
+        <>
+          <Field label="States (comma-separated, e.g. CA,OR,WA)">
+            <input type="text" value={local.states.join(",")}
+              onChange={(e) => upd({ states: csv(e.target.value) })}
+              className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm" />
+          </Field>
+          <Field label="Counties (comma-separated, optional)">
+            <input type="text" value={local.counties.join(",")}
+              onChange={(e) => upd({ counties: csv(e.target.value) })}
+              className="w-full rounded-md border border-white/10 bg-background px-2 py-1 text-sm" />
+          </Field>
+        </>
+      )}
+
       <div className="flex items-center gap-2">
         <button onClick={save}
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:brightness-110">
-          <MapPin className="h-3.5 w-3.5" /> Save area
+          <MapPin className="h-3.5 w-3.5" /> Save
         </button>
         <span className="text-[11px] text-muted-foreground">
           Updated {new Date(local.updated_at).toLocaleString()}
@@ -139,9 +204,7 @@ function UsersSection() {
   });
 
   const rolesByUser: Record<string, AppRole[]> = {};
-  for (const r of allRoles) {
-    (rolesByUser[r.user_id] ??= []).push(r.role);
-  }
+  for (const r of allRoles) (rolesByUser[r.user_id] ??= []).push(r.role);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["all_profiles"] });
@@ -169,11 +232,7 @@ function UsersSection() {
     <Card title="Users & roles" desc="Approve new signups and manage operator roles.">
       <div className="overflow-x-auto">
         <table className="cad-table">
-          <thead>
-            <tr>
-              <th>User</th><th>Status</th><th>Roles</th><th>Joined</th><th className="text-right">Actions</th>
-            </tr>
-          </thead>
+          <thead><tr><th>User</th><th>Status</th><th>Roles</th><th>Joined</th><th className="text-right">Actions</th></tr></thead>
           <tbody>
             {profiles.map((p) => {
               const userRoles = rolesByUser[p.user_id] ?? [];
@@ -183,14 +242,11 @@ function UsersSection() {
                     <div className="text-foreground">{p.display_name ?? "—"}</div>
                     <div className="text-[10px] text-muted-foreground">{p.email}</div>
                   </td>
-                  <td>
-                    <StatusPill status={p.status} />
-                  </td>
+                  <td><StatusPill status={p.status} /></td>
                   <td>
                     <div className="flex flex-wrap gap-1">
                       {userRoles.map((r) => (
-                        <button key={r} onClick={() => removeRole(p.user_id, r)}
-                          title="Remove role"
+                        <button key={r} onClick={() => removeRole(p.user_id, r)} title="Remove role"
                           className="inline-flex items-center gap-1 rounded border border-primary/40 bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary hover:bg-primary/20">
                           {r} <X className="h-2.5 w-2.5" />
                         </button>
