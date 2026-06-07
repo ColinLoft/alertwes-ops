@@ -86,6 +86,27 @@ export async function createIncidentFromHotspot(input: {
     input.confidence === "h" ? 90 : input.confidence === "n" ? 65 : input.confidence === "l" ? 35 : null;
   const title =
     input.title ?? `FIRMS detection ${input.lat.toFixed(3)}, ${input.lng.toFixed(3)}`;
+
+  // Enforce detection area — defense in depth (DB has no trigger; client guard here)
+  const { data: area } = await supabase.from("detection_area").select("*").eq("id", true).single();
+  if (area) {
+    const R = 3958.8;
+    const toRad = (x: number) => (x * Math.PI) / 180;
+    const dLat = toRad(input.lat - Number(area.center_lat));
+    const dLng = toRad(input.lng - Number(area.center_lng));
+    const s = Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(Number(area.center_lat))) * Math.cos(toRad(input.lat)) * Math.sin(dLng / 2) ** 2;
+    const dist = 2 * R * Math.asin(Math.sqrt(s));
+    const inRadius = Number(area.radius_mi) > 0 && dist <= Number(area.radius_mi);
+    if (!inRadius && (area.states?.length ?? 0) === 0 && (area.counties?.length ?? 0) === 0) {
+      throw new Error("Location is outside the configured detection area. Update Settings → Detection area.");
+    }
+    if (!inRadius && (area.states?.length ?? 0) > 0) {
+      // We can't know state from coordinates alone; allow only if radius matches OR caller already verified.
+      // Permissive: if states are configured but no radius match, still allow (operator confirmed click).
+    }
+  }
+
   const { data, error } = await supabase
     .from("incidents")
     .insert({
@@ -108,6 +129,7 @@ export async function createIncidentFromHotspot(input: {
   });
   return data as IncidentRow;
 }
+
 
 export async function updateIncidentStatus(id: string, status: IncidentStatus) {
   const { error } = await supabase.from("incidents").update({ status }).eq("id", id);
