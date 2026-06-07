@@ -38,6 +38,20 @@ export async function dismissSuggestion(id: string) {
   if (error) throw error;
 }
 
+export async function muteCamera(camera_id: string, camera_name: string | null, hours = 24, reason = "False positive") {
+  const muted_until = new Date(Date.now() + hours * 3600_000).toISOString();
+  const { error } = await supabase
+    .from("muted_cameras")
+    .upsert({ camera_id, camera_name, reason, muted_until }, { onConflict: "camera_id" });
+  if (error) throw error;
+  // also dismiss any pending suggestions for this camera
+  await supabase
+    .from("incident_suggestions")
+    .update({ status: "dismissed", resolved_at: new Date().toISOString() })
+    .eq("camera_id", camera_id)
+    .eq("status", "pending");
+}
+
 export async function promoteSuggestion(s: SuggestionRow): Promise<string> {
   const priority = s.label === "fire" ? (s.confidence >= 80 ? "p1" : "p2") : "p3";
   const { data: inc, error: e1 } = await supabase
