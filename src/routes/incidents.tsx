@@ -16,7 +16,7 @@ import { getRedFlagAlerts } from "@/lib/nws.functions";
 import { getWindAtPoint } from "@/lib/synoptic.functions";
 import { sweepCameras } from "@/lib/ai-detect.functions";
 import { fetchCameras, type Camera } from "@/lib/alertwest";
-import { fetchDetectionArea, isInDetectionArea } from "@/lib/area";
+import { fetchDetectionArea, getDetectionAreaBounds, getDetectionAreaCenter, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
 import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, fetchSweepStatus, fetchCameraHealth, markFalsePositive, type SuggestionRow, type CameraHealth } from "@/lib/suggestions";
 import {
   fetchIncidents,
@@ -69,7 +69,7 @@ function IncidentsPage() {
 
   // Cameras restricted to the detection area for map overlay.
   const inAreaCameras = useMemo(() => {
-    if (!area) return cameras;
+    if (!area) return [];
     return cameras.filter((c) => {
       const lat = Number(c.site.latitude), lng = Number(c.site.longitude);
       if (!isFinite(lat) || !isFinite(lng)) return false;
@@ -79,16 +79,16 @@ function IncidentsPage() {
 
   const hotspots = useMemo(() => {
     const all = firms?.hotspots ?? [];
-    if (!area) return all;
+    if (!area) return [];
     return all.filter((h) => isInDetectionArea({ lat: h.lat, lng: h.lng }, area));
   }, [firms, area]);
 
   const filteredAlerts = useMemo(() => {
     const all = nws?.alerts ?? [];
-    if (!area) return all;
+    if (!area) return [];
     return all.filter((a: any) => {
       if (a.lat != null && a.lng != null && isInDetectionArea({ lat: a.lat, lng: a.lng }, area)) return true;
-      if (area.states?.length && a.states?.some((s: string) => area.states.includes(s))) return true;
+      if (isRegionTextInDetectionArea(a.areaDesc, area)) return true;
       return false;
     });
   }, [nws, area]);
@@ -99,6 +99,8 @@ function IncidentsPage() {
     if (!area || area.mode !== "address") return null;
     return { address: area.address ?? "", lat: Number(area.center_lat), lng: Number(area.center_lng), km: Number(area.radius_mi) };
   }, [area]);
+  const areaBounds = useMemo(() => getDetectionAreaBounds(area), [area]);
+  const mapCenter = useMemo(() => getDetectionAreaCenter(area), [area]);
 
 
   const visible = useMemo(() => {
@@ -235,7 +237,7 @@ function IncidentsPage() {
       {/* Map + detail split */}
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 relative min-w-0">
-          <MapContainer center={area ? [Number(area.center_lat), Number(area.center_lng)] : [37.5, -119]} zoom={6} className="absolute inset-0" preferCanvas>
+          <MapContainer key={area ? `${area.mode}-${mapCenter.lat}-${mapCenter.lng}-${area.counties.join("|")}` : "loading"} center={[mapCenter.lat, mapCenter.lng]} zoom={6} className="absolute inset-0" preferCanvas>
             <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
             {hotspots.map((h, idx) => (
               <CircleMarker key={`h${idx}`} center={[h.lat, h.lng]} radius={Math.min(10, 3 + (h.frp || 0) / 10)}
@@ -268,7 +270,7 @@ function IncidentsPage() {
               </Marker>
             ))}
             <CameraMarkersLayer cameras={inAreaCameras} selectedId={null} onSelect={() => {}} showPulse={false} />
-            <PlanesLayer refreshSeconds={30} radius={planesRadius} />
+            {area && <PlanesLayer refreshSeconds={30} radius={planesRadius} bounds={areaBounds} />}
           </MapContainer>
         </div>
 

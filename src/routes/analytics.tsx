@@ -6,7 +6,7 @@ import { BarChart3, Flame, AlertTriangle, Camera as CameraIcon, Plane, FileText,
 import { supabase } from "@/integrations/supabase/client";
 import { fetchIncidents, STATUS_META, PRIORITY_META, type IncidentRow } from "@/lib/incidents";
 import { fetchCameras } from "@/lib/alertwest";
-import { fetchDetectionArea, isInDetectionArea } from "@/lib/area";
+import { fetchDetectionArea, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
 import { getFirmsHotspots } from "@/lib/firms.functions";
 import { getRedFlagAlerts } from "@/lib/nws.functions";
 import { fetchSweepStatus, fetchCameraHealth, type CameraHealth } from "@/lib/suggestions";
@@ -68,7 +68,7 @@ function AnalyticsPage() {
     if (!area) return all;
     return all.filter((a: any) => {
       if (a.lat != null && a.lng != null && isInDetectionArea({ lat: a.lat, lng: a.lng }, area)) return true;
-      if (area.states?.length && a.states?.some((s: string) => area.states.includes(s))) return true;
+      if (isRegionTextInDetectionArea(a.areaDesc, area)) return true;
       return false;
     });
   }, [nws, area]);
