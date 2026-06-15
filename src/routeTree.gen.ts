@@ -13,11 +13,16 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as IncidentsRouteImport } from './routes/incidents'
 import { Route as FleetRouteImport } from './routes/fleet'
+import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as DisasterRouteImport } from './routes/disaster'
+import { Route as CitationsRouteImport } from './routes/citations'
+import { Route as CamerasRouteImport } from './routes/cameras'
+import { Route as BoloRouteImport } from './routes/bolo'
 import { Route as BasesRouteImport } from './routes/bases'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DispatchUnitsRouteImport } from './routes/dispatch.units'
 import { Route as ApiPlanesRouteImport } from './routes/api/planes'
 import { Route as ApiPublicHooksSweepCamerasRouteImport } from './routes/api/public/hooks/sweep-cameras'
 
@@ -41,9 +46,29 @@ const FleetRoute = FleetRouteImport.update({
   path: '/fleet',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DispatchRoute = DispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DisasterRoute = DisasterRouteImport.update({
   id: '/disaster',
   path: '/disaster',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CitationsRoute = CitationsRouteImport.update({
+  id: '/citations',
+  path: '/citations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CamerasRoute = CamerasRouteImport.update({
+  id: '/cameras',
+  path: '/cameras',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BoloRoute = BoloRouteImport.update({
+  id: '/bolo',
+  path: '/bolo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BasesRoute = BasesRouteImport.update({
@@ -66,6 +91,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DispatchUnitsRoute = DispatchUnitsRouteImport.update({
+  id: '/units',
+  path: '/units',
+  getParentRoute: () => DispatchRoute,
+} as any)
 const ApiPlanesRoute = ApiPlanesRouteImport.update({
   id: '/api/planes',
   path: '/api/planes',
@@ -83,12 +113,17 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AnalyticsRoute
   '/auth': typeof AuthRoute
   '/bases': typeof BasesRoute
+  '/bolo': typeof BoloRoute
+  '/cameras': typeof CamerasRoute
+  '/citations': typeof CitationsRoute
   '/disaster': typeof DisasterRoute
+  '/dispatch': typeof DispatchRouteWithChildren
   '/fleet': typeof FleetRoute
   '/incidents': typeof IncidentsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
+  '/dispatch/units': typeof DispatchUnitsRoute
   '/api/public/hooks/sweep-cameras': typeof ApiPublicHooksSweepCamerasRoute
 }
 export interface FileRoutesByTo {
@@ -96,12 +131,17 @@ export interface FileRoutesByTo {
   '/analytics': typeof AnalyticsRoute
   '/auth': typeof AuthRoute
   '/bases': typeof BasesRoute
+  '/bolo': typeof BoloRoute
+  '/cameras': typeof CamerasRoute
+  '/citations': typeof CitationsRoute
   '/disaster': typeof DisasterRoute
+  '/dispatch': typeof DispatchRouteWithChildren
   '/fleet': typeof FleetRoute
   '/incidents': typeof IncidentsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
+  '/dispatch/units': typeof DispatchUnitsRoute
   '/api/public/hooks/sweep-cameras': typeof ApiPublicHooksSweepCamerasRoute
 }
 export interface FileRoutesById {
@@ -110,12 +150,17 @@ export interface FileRoutesById {
   '/analytics': typeof AnalyticsRoute
   '/auth': typeof AuthRoute
   '/bases': typeof BasesRoute
+  '/bolo': typeof BoloRoute
+  '/cameras': typeof CamerasRoute
+  '/citations': typeof CitationsRoute
   '/disaster': typeof DisasterRoute
+  '/dispatch': typeof DispatchRouteWithChildren
   '/fleet': typeof FleetRoute
   '/incidents': typeof IncidentsRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
+  '/dispatch/units': typeof DispatchUnitsRoute
   '/api/public/hooks/sweep-cameras': typeof ApiPublicHooksSweepCamerasRoute
 }
 export interface FileRouteTypes {
@@ -125,12 +170,17 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/auth'
     | '/bases'
+    | '/bolo'
+    | '/cameras'
+    | '/citations'
     | '/disaster'
+    | '/dispatch'
     | '/fleet'
     | '/incidents'
     | '/reports'
     | '/settings'
     | '/api/planes'
+    | '/dispatch/units'
     | '/api/public/hooks/sweep-cameras'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -138,12 +188,17 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/auth'
     | '/bases'
+    | '/bolo'
+    | '/cameras'
+    | '/citations'
     | '/disaster'
+    | '/dispatch'
     | '/fleet'
     | '/incidents'
     | '/reports'
     | '/settings'
     | '/api/planes'
+    | '/dispatch/units'
     | '/api/public/hooks/sweep-cameras'
   id:
     | '__root__'
@@ -151,12 +206,17 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/auth'
     | '/bases'
+    | '/bolo'
+    | '/cameras'
+    | '/citations'
     | '/disaster'
+    | '/dispatch'
     | '/fleet'
     | '/incidents'
     | '/reports'
     | '/settings'
     | '/api/planes'
+    | '/dispatch/units'
     | '/api/public/hooks/sweep-cameras'
   fileRoutesById: FileRoutesById
 }
@@ -165,7 +225,11 @@ export interface RootRouteChildren {
   AnalyticsRoute: typeof AnalyticsRoute
   AuthRoute: typeof AuthRoute
   BasesRoute: typeof BasesRoute
+  BoloRoute: typeof BoloRoute
+  CamerasRoute: typeof CamerasRoute
+  CitationsRoute: typeof CitationsRoute
   DisasterRoute: typeof DisasterRoute
+  DispatchRoute: typeof DispatchRouteWithChildren
   FleetRoute: typeof FleetRoute
   IncidentsRoute: typeof IncidentsRoute
   ReportsRoute: typeof ReportsRoute
@@ -204,11 +268,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FleetRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dispatch': {
+      id: '/dispatch'
+      path: '/dispatch'
+      fullPath: '/dispatch'
+      preLoaderRoute: typeof DispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/disaster': {
       id: '/disaster'
       path: '/disaster'
       fullPath: '/disaster'
       preLoaderRoute: typeof DisasterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/citations': {
+      id: '/citations'
+      path: '/citations'
+      fullPath: '/citations'
+      preLoaderRoute: typeof CitationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cameras': {
+      id: '/cameras'
+      path: '/cameras'
+      fullPath: '/cameras'
+      preLoaderRoute: typeof CamerasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bolo': {
+      id: '/bolo'
+      path: '/bolo'
+      fullPath: '/bolo'
+      preLoaderRoute: typeof BoloRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bases': {
@@ -239,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dispatch/units': {
+      id: '/dispatch/units'
+      path: '/units'
+      fullPath: '/dispatch/units'
+      preLoaderRoute: typeof DispatchUnitsRouteImport
+      parentRoute: typeof DispatchRoute
+    }
     '/api/planes': {
       id: '/api/planes'
       path: '/api/planes'
@@ -256,12 +355,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DispatchRouteChildren {
+  DispatchUnitsRoute: typeof DispatchUnitsRoute
+}
+
+const DispatchRouteChildren: DispatchRouteChildren = {
+  DispatchUnitsRoute: DispatchUnitsRoute,
+}
+
+const DispatchRouteWithChildren = DispatchRoute._addFileChildren(
+  DispatchRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
   AuthRoute: AuthRoute,
   BasesRoute: BasesRoute,
+  BoloRoute: BoloRoute,
+  CamerasRoute: CamerasRoute,
+  CitationsRoute: CitationsRoute,
   DisasterRoute: DisasterRoute,
+  DispatchRoute: DispatchRouteWithChildren,
   FleetRoute: FleetRoute,
   IncidentsRoute: IncidentsRoute,
   ReportsRoute: ReportsRoute,

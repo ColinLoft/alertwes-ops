@@ -13,7 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { useApplyBranding, useBrandingSync } from "../lib/branding";
-import { AppShell } from "../components/AppShell";
+import { AppChrome, appForPath } from "../components/AppChrome";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -127,10 +127,12 @@ function RootComponent() {
   useBrandingSync();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const bare = pathname.startsWith("/auth");
+  const launcher = pathname === "/";
+  const app = appForPath(pathname);
 
   return (
     <QueryClientProvider client={queryClient}>
-      {bare ? <Outlet /> : <AppShell><Outlet /></AppShell>}
+      {bare || launcher ? <Outlet /> : <AppChrome app={app}><Outlet /></AppChrome>}
       <Toaster position="top-right" />
     </QueryClientProvider>
   );
