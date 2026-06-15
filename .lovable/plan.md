@@ -1,99 +1,119 @@
-## Goal
 
-Re-shape Aegis Command into a focused **fire detection + operations CAD**: Spillman-style dense tables in a translucent iOS-glass shell, with cameras as the primary detection source, an AI-assisted triage queue, and admin-controlled access + area scoping.
+# Multi-App Architecture + PremierOne Restyle
 
----
+Split the project into four independent "apps" reachable by direct URL (so operators can pin desktop shortcuts), each with its own toolbar, color theme, and nav. Replace the current single `AppShell` with a per-app shell that mimics the PremierOne / LAFD CAD chrome from the references — gray top chrome, large F-key icon toolbar, per-app accent color, status strip underneath.
 
-## 1. Pages & navigation
+## App map
 
-Top bar items become: **Incidents (CAD)** · **Cameras** · **Fleet** · **Bases** · **Disaster** · **Settings**
+| App | URL | Accent | Contains |
+|---|---|---|---|
+| **Launcher** | `/` | neutral | Tile grid of the 4 apps + sign-in/role chip |
+| **CAD** (wildfire ops) | `/cad/*` | amber/red | Incidents map (current `/incidents`), Cameras, Disaster, Analytics |
+| **Dispatch** | `/dispatch/*` | blue | New "Active Calls" board (matches LAFD CAD screenshot), units, cross-agency status, plus drone dispatch panel |
+| **Records** | `/records/*` | slate | Reports list, Incident Reports, BOLO board (new), Citations (new) |
+| **Flight Ops** | `/flight/*` | cyan | Fleet, Bases, airframes, maintenance |
+| Settings | `/settings` | — | Shared, reachable from any app's gear icon |
 
-- **Remove** `/ops/maintenance` and `/ops/personnel` (delete route files; drop from nav).
-- **Remove** standalone `/admin` route; fold its panels into Settings as gated tabs.
-- `/incidents` becomes the primary landing / CAD view.
+This is a wildfire-detection / aerial response platform, not a police CAD — Records' BOLO and Citation pages are scaffolds the user can iterate on; the real value is grouping fire reports + incident reports + future records there. Dispatch's "active calls" = active fire incidents in the detection area with assigned drone units.
 
-## 2. Approval gate
+## Routes (file moves, not rewrites)
 
-New table `user_profiles(user_id, status: 'pending'|'approved'|'denied', display_name, ...)` with a trigger that creates a row on signup with `status='pending'`. RLS: user reads own row, admins read/update all.
-
-App shell behavior: signed-in but not approved → render a "Pending approval" screen instead of the app. Admins can approve + assign role in Settings → Users.
-
-`claim_first_admin()` will also auto-approve the caller.
-
-## 3. Settings (admin-gated tabs)
-
-`/settings` becomes the single config surface:
-
-- **Profile** — anyone signed in
-- **Branding** — anyone signed in (existing)
-- **Detection area** — admin only
-- **Users & roles** — admin only (current `/admin` content + approve/deny)
-- **System** — admin only (clear caches, dev seeds)
-
-Non-admin tabs simply don't render.
-
-## 4. Detection area (new)
-
-New table `detection_area` (singleton, one row):
-- `center_lat`, `center_lng`, `radius_mi` (number)
-- `states text[]` (e.g. `{CA,OR}`)
-- `counties text[]` (e.g. `{Los Angeles,Ventura}`)
-
-A camera/hotspot qualifies for incident creation if **either** (a) it falls within `radius_mi` of the center **or** (b) its `state`/`county` is in the lists. Empty area = nothing qualifies (safety default).
-
-Helper `isInDetectionArea(lat,lng,state,county, area)` used by:
-- camera list (badge + enable/disable "Report" button)
-- FIRMS hotspot click-to-create
-- AI suggestion ingestion
-
-## 5. Camera-first detection (AI suggest + operator confirm)
-
-New table `incident_suggestions`:
-- `source` ('camera'|'firms'), `camera_id`, `lat`, `lng`, `state`, `county`
-- `confidence smallint`, `label` ('smoke'|'fire'|'clear'), `reasoning text`
-- `image_url`, `image_time`, `status` ('pending'|'promoted'|'dismissed')
-- Realtime enabled.
-
-**Server function** `analyzeCameraFrame` (Lovable AI Gateway, `google/gemini-2.5-flash-image` for vision or `gemini-3-flash-preview` with image input) — given a camera image URL + metadata, returns `{ label, confidence, reasoning }`. Throttled 1 frame / camera / 5 min, only for cameras inside the detection area. Writes to `incident_suggestions` when `confidence ≥ 60` and label ≠ clear.
-
-**Triage strip** in the Incidents CAD view shows pending suggestions with thumbnail + AI reasoning. Operator clicks **Promote** → creates an `incident` (linked back via `external_id = suggestion.id`) or **Dismiss**.
-
-A "Run AI sweep" button in the Cameras page kicks an on-demand pass across in-area cameras (batched, returns count of new suggestions). Scheduled polling can be added later.
-
-## 6. CAD-style UI (Spillman-inspired, iOS glass)
-
-Layout for `/incidents`:
-
-```text
-┌────────────── Top bar (existing, glassified) ──────────────┐
-├─ AI Triage strip (horizontal cards, dismissible)           ┤
-├─ Active Incidents table (dense, color-coded by status)     ┤
-│   Call# | Nature | Location | County | Pr | Status | Time | Unit
-├─ Split below: [ Map (left) ] | [ Unit roster table (right) ]┤
-└─────────────────────────────────────────────────────────────┘
+```
+src/routes/
+  index.tsx                  → Launcher (replaces current cameras home)
+  cad/
+    route.tsx                → CAD shell (Outlet)
+    index.tsx                → redirect to /cad/incidents
+    incidents.tsx            (moved from /incidents)
+    cameras.tsx              (moved from /)
+    disaster.tsx             (moved)
+    analytics.tsx            (moved)
+  dispatch/
+    route.tsx                → Dispatch shell
+    index.tsx                → Active calls board (new)
+    units.tsx                → Signed-in units (new, pulls from drones)
+  records/
+    route.tsx                → Records shell
+    index.tsx                → Reports list (moved from /reports)
+    bolo.tsx                 → BOLO scaffold
+    citations.tsx            → Citation scaffold
+  flight/
+    route.tsx                → Flight Ops shell
+    index.tsx                → Fleet (moved)
+    bases.tsx                (moved)
+  settings.tsx               (unchanged path)
+  auth.tsx                   (unchanged)
 ```
 
-- Tables: monospaced numerals, 11–12px, row hover, status color in the leftmost cell (red P1 fire / amber medical-of-fire / cyan contained / etc.).
-- All surfaces use a new `--glass-*` token set: `backdrop-blur-xl`, `bg-white/[0.04]`, `border-white/10`, subtle inner highlight. No flat panels.
-- Unit roster table mirrors the lower table in the screenshot — drones with Status / Time-in-status / Call# / Base / Description.
-- Status changes + dispatch actions update both tables in real time (already on realtime).
+Old top-level routes (`/incidents`, `/fleet`, `/bases`, `/reports`, `/disaster`, `/analytics`) keep working via thin redirect route files so existing bookmarks and the `auto_create_incident_report` flow don't break.
 
-## 7. Detection-area enforcement
+## Shared UI: `AppChrome`
 
-- `createIncidentFromHotspot` and the new `promoteSuggestion` RPCs check the area; reject with toast if outside.
-- DB-side `BEFORE INSERT` trigger on `incidents` also enforces area (defense in depth) — admins can bypass with `bypass_area=true` payload via a manual-create flow.
+New `src/components/AppChrome.tsx` replaces `AppShell` for per-app rendering:
 
----
+- **Title bar** (gray gradient): app logo + name on left, Live/Profile/Settings/Sign-out on right — matches the LAFD CAD bar.
+- **F-key toolbar** (taller, icon-first): each tile shows the F-key label above, a large colored icon, and the page name below. Active tile gets the app's accent color glow.
+- **Status strip**: unit/badge on left (e.g. "RA62" or "DRONE-01"), unread/messages/BOLO counters, day/night toggle, availability pill, clock on right. Counters wired to live data where available, placeholders otherwise.
+- **Bottom action bar** (where it makes sense per page): Edit / Locate on Map / Create Report / etc. — driven by a per-page `actions` prop.
 
-## Technical notes (for the dev side)
+`AppChrome` takes `{ app, navItems, statusSlot, children }`. Each app's `route.tsx` configures its theme via a `data-app="cad|dispatch|records|flight"` attribute that swaps CSS variable accents defined in `src/styles.css`.
 
-- New migration: `user_profiles`, signup trigger, `detection_area` singleton + seed row, `incident_suggestions`, area-check trigger on `incidents`, realtime add for both new tables.
-- New server fns: `analyzeCameraFrame`, `sweepCameras`, `promoteSuggestion` (all `requireSupabaseAuth`).
-- New libs: `src/lib/area.ts` (geo + state/county check), `src/lib/suggestions.ts` (CRUD).
-- New components: `ApprovalGate`, `TriageStrip`, `IncidentsTable`, `UnitRosterTable`, `GlassPanel`.
-- Style tokens added in `src/styles.css` (`--glass-bg`, `--glass-border`, `--glass-highlight`, P1–P4 colors, status colors).
-- Delete: `src/routes/ops.maintenance.tsx`, `src/routes/ops.personnel.tsx`, `src/routes/admin.tsx` (its content moves into `settings.tsx`).
-- Keep existing fleet/bases/disaster routes; restyle headers to the glass shell but no structural change.
-- `LOVABLE_API_KEY` already present; no new secrets.
+## Launcher (`/`)
 
-I'll execute in this order: migration → approval gate + settings merge → remove old pages → glass tokens + CAD layout → detection area + enforcement → AI suggestion pipeline + triage strip.
+Replaces the current camera dashboard at `/`. Renders a 2x2 grid of large app tiles (icon, name, one-line description, live count badge — e.g. CAD shows active incidents, Dispatch shows active calls, Flight shows ready drones). Clicking a tile navigates to that app's root.
+
+## Design tokens (src/styles.css)
+
+Add gray chrome variables and per-app accent variables:
+
+```css
+--chrome-bg: linear-gradient(...gray);
+--chrome-border: ...;
+--app-cad: oklch(...amber);
+--app-dispatch: oklch(...blue);
+--app-records: oklch(...slate);
+--app-flight: oklch(...cyan);
+```
+
+Components read `var(--app-accent)` which `[data-app]` overrides.
+
+## New pages (scaffolds)
+
+- **`/dispatch`** — "All Active Calls" table sourced from `incidents` (priority, type, location, assigned drone, action button). "Signed-in Units" pulls from `drones` where `status != offline`. Cross-agency status is a static info card for now (no other agencies wired).
+- **`/dispatch/units`** — full unit roster grid.
+- **`/records/bolo`** — form + list, persisted to a new `bolos` table.
+- **`/records/citations`** — form + list, persisted to a new `citations` table.
+
+## Database (one migration)
+
+```sql
+create table public.bolos (id, type text, last_name, first_name, dob,
+  race, sex, age, height, weight, plate, vehicle_desc, reason, details,
+  issued_by uuid, status text default 'active', created_at, updated_at);
+create table public.citations (id, case_no text, violator jsonb,
+  vehicle jsonb, violation jsonb, fine_amount, court_date, court_location,
+  officer uuid, created_at, updated_at);
+```
+
+Both get GRANTs to `authenticated`/`service_role`, RLS enabled, and policies: `authenticated` can read all; only the issuing officer or `admin` can update/delete.
+
+## What stays unchanged
+
+- All data layer (`src/lib/*`), Supabase client, FIRMS/NWS/planes filtering, detection area, approval gate, auth.
+- Settings page and admin sections.
+- The dark theme remains as the base — the gray chrome sits on top of dark content panels (like the LAFD CAD screenshot).
+
+## Out of scope (call out, don't build)
+
+- Real cross-agency feeds (LAPD/LASD/CHP) — UI placeholders only.
+- Per-app keyboard F-key shortcuts wired to the toolbar — visual labels only this pass; can add `useGlobalShortcuts` mapping next.
+- Mobile/native shortcuts — operators get URLs they can pin themselves.
+
+## Order of work
+
+1. Migration for `bolos` + `citations`.
+2. `AppChrome` + theme tokens.
+3. New launcher at `/`.
+4. Move existing routes into `/cad/*`, `/flight/*`, `/records/*` with redirects from old paths.
+5. New `/dispatch` board + `/records/bolo` + `/records/citations` scaffolds.
+6. Update all `<Link>` targets in nav, dispatch panel, incident actions, etc.

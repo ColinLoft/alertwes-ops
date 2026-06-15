@@ -98,6 +98,111 @@ export type Database = {
         }
         Relationships: []
       }
+      bolos: {
+        Row: {
+          age: number | null
+          bolo_type: string
+          created_at: string
+          details: string | null
+          dob: string | null
+          first_name: string | null
+          height: string | null
+          id: string
+          issued_by: string | null
+          last_name: string | null
+          plate: string | null
+          race: string | null
+          reason: string | null
+          sex: string | null
+          status: string
+          updated_at: string
+          vehicle_desc: string | null
+          weight: string | null
+        }
+        Insert: {
+          age?: number | null
+          bolo_type?: string
+          created_at?: string
+          details?: string | null
+          dob?: string | null
+          first_name?: string | null
+          height?: string | null
+          id?: string
+          issued_by?: string | null
+          last_name?: string | null
+          plate?: string | null
+          race?: string | null
+          reason?: string | null
+          sex?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_desc?: string | null
+          weight?: string | null
+        }
+        Update: {
+          age?: number | null
+          bolo_type?: string
+          created_at?: string
+          details?: string | null
+          dob?: string | null
+          first_name?: string | null
+          height?: string | null
+          id?: string
+          issued_by?: string | null
+          last_name?: string | null
+          plate?: string | null
+          race?: string | null
+          reason?: string | null
+          sex?: string | null
+          status?: string
+          updated_at?: string
+          vehicle_desc?: string | null
+          weight?: string | null
+        }
+        Relationships: []
+      }
+      citations: {
+        Row: {
+          case_no: string | null
+          court_date: string | null
+          court_location: string | null
+          created_at: string
+          fine_amount: number | null
+          id: string
+          officer: string | null
+          updated_at: string
+          vehicle: Json
+          violation: Json
+          violator: Json
+        }
+        Insert: {
+          case_no?: string | null
+          court_date?: string | null
+          court_location?: string | null
+          created_at?: string
+          fine_amount?: number | null
+          id?: string
+          officer?: string | null
+          updated_at?: string
+          vehicle?: Json
+          violation?: Json
+          violator?: Json
+        }
+        Update: {
+          case_no?: string | null
+          court_date?: string | null
+          court_location?: string | null
+          created_at?: string
+          fine_amount?: number | null
+          id?: string
+          officer?: string | null
+          updated_at?: string
+          vehicle?: Json
+          violation?: Json
+          violator?: Json
+        }
+        Relationships: []
+      }
       detection_area: {
         Row: {
           address: string | null
