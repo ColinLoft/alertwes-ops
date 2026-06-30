@@ -209,6 +209,17 @@ function IncidentsPage() {
     } catch (e: any) { toast.error(e?.message ?? "Failed"); }
   };
 
+  const focusCamera = (camId: string | null, lat?: number | null, lng?: number | null) => {
+    if (camId) setSelectedCameraId(camId);
+    setSelectedId(null);
+    const cam = camId ? cameras.find((c) => c.site.id === camId) : null;
+    const targetLat = cam ? Number(cam.site.latitude) : lat != null ? Number(lat) : NaN;
+    const targetLng = cam ? Number(cam.site.longitude) : lng != null ? Number(lng) : NaN;
+    if (Number.isFinite(targetLat) && Number.isFinite(targetLng)) {
+      setFlyTarget({ lat: targetLat, lng: targetLng, zoom: 12, key: Date.now() });
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-44px)] overflow-hidden">
       {/* Sweep status panel */}
