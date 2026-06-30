@@ -144,6 +144,7 @@ function IncidentsPage() {
     if (candidates.length === 0) return toast.error("No in-area cameras with recent frames");
     setSweeping(true);
     setSweepResults(null);
+    setSweepPanelOpen(true);
     setSweepProgress({ done: 0, total: candidates.length });
     toast.message(`AI sweeping ${candidates.length} cameras…`);
     try {
