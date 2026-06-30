@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CameraList } from "@/components/CameraList";
+import { CameraPanel } from "@/components/CameraPanel";
 import { fetchCameras } from "@/lib/alertwest";
 import { fetchDetectionArea, isInDetectionArea } from "@/lib/area";
+import { useCameraHistory } from "@/hooks/useCameraHistory";
 
 export const Route = createFileRoute("/cameras")({
   head: () => ({ meta: [{ title: "Cameras — Aegis CAD" }] }),
@@ -12,13 +14,14 @@ export const Route = createFileRoute("/cameras")({
 });
 
 function CamerasPage() {
-  const { data: cameras = [] } = useQuery({
+  const { data: cameras = [], dataUpdatedAt } = useQuery({
     queryKey: ["aw-cameras"],
     queryFn: fetchCameras,
     staleTime: 60_000,
     refetchInterval: 60_000,
   });
   const { data: area } = useQuery({ queryKey: ["detection_area"], queryFn: fetchDetectionArea });
+  const history = useCameraHistory(cameras, dataUpdatedAt);
   const [scope, setScope] = useState<"area" | "all">("area");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -31,8 +34,13 @@ function CamerasPage() {
     });
   }, [cameras, area, scope]);
 
+  const selected = useMemo(
+    () => (selectedId ? cameras.find((c) => c.site.id === selectedId) ?? null : null),
+    [selectedId, cameras],
+  );
+
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="relative flex h-full w-full flex-col">
       <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3 glass-subtle">
         <div>
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Camera Roster</div>
@@ -49,8 +57,15 @@ function CamerasPage() {
           </button>
         </div>
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 relative">
         <CameraList cameras={visible} selectedId={selectedId} onSelect={setSelectedId} />
+        {selected && (
+          <CameraPanel
+            camera={selected}
+            onClose={() => setSelectedId(null)}
+            history={history[selected.site.id] ?? []}
+          />
+        )}
       </div>
     </div>
   );
