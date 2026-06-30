@@ -331,6 +331,7 @@ function IncidentsPage() {
               showPulse={false}
             />
             <PlanesLayer refreshSeconds={30} radius={null} bounds={null} fixedBbox={planesBbox} />
+            <MapFlyController target={flyTarget} />
           </MapContainer>
           {selectedCamera && (
             <CameraPanel
