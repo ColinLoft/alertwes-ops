@@ -217,9 +217,11 @@ export function isInDetectionArea(loc: CandidateLoc, area: DetectionArea | null 
   if (!loc.state && !loc.county) {
     const bounds = getDetectionAreaBounds(area);
     if (bounds.length) {
-      // Use inset bbox when counties selected to reduce neighbor-county overlap; full bbox for state-only.
-      const test = selectedCounties.length > 0 ? containsPointInset : containsPoint;
-      return bounds.some((b) => test(b, loc));
+      if (selectedCounties.length > 0) {
+        // Stricter: inset bbox AND inscribed-circle to keep neighbor-county hotspots out.
+        return bounds.some((b) => containsPointInset(b, loc, 0.05) && withinInscribedCircle(b, loc));
+      }
+      return bounds.some((b) => containsPoint(b, loc));
     }
     return area.radius_mi > 0 &&
       haversineMi({ lat: Number(area.center_lat), lng: Number(area.center_lng) }, loc) <= Number(area.radius_mi);
@@ -227,8 +229,7 @@ export function isInDetectionArea(loc: CandidateLoc, area: DetectionArea | null 
   // If counties are selected, they narrow the state instead of selecting the whole state.
   if (selectedCounties.length > 0) {
     if (countyMatch) return true;
-    // For points without county metadata, use inset bbox to reduce neighboring-county overlap.
-    return getDetectionAreaBounds(area).some((b) => containsPointInset(b, loc));
+    return getDetectionAreaBounds(area).some((b) => containsPointInset(b, loc, 0.05) && withinInscribedCircle(b, loc));
   }
   return stateMatch;
 }
