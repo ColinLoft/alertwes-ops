@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { Camera } from "@/lib/alertwest";
 import { getStatus, relTime } from "@/lib/alertwest";
 import { ActivityTimeline } from "./ActivityTimeline";
-import { PTZDisplay } from "./PTZDisplay";
+
 import type { FrameRecord } from "@/hooks/useCameraHistory";
 
 function fmtTime(s: string | null) {
@@ -97,7 +97,7 @@ export function CameraPanel({
             isLiveActive={!previewOverride}
           />
 
-          <PTZDisplay camera={camera} />
+
 
           <div className="grid grid-cols-2 gap-2">
             <Stat label="Location">

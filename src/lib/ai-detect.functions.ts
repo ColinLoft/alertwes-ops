@@ -61,6 +61,9 @@ async function analyzeOne(input: CameraInput, apiKey: string) {
 export interface SweepResultItem {
   camera_id: string;
   camera_name: string;
+  lat: number;
+  lng: number;
+  image_url: string;
   label: "fire" | "smoke" | "clear";
   confidence: number;
   reasoning: string;
@@ -125,6 +128,9 @@ export const sweepCameras = createServerFn({ method: "POST" })
           results.push({
             camera_id: cam.camera_id,
             camera_name: cam.camera_name,
+            lat: cam.lat,
+            lng: cam.lng,
+            image_url: cam.image_url,
             label: result.label as any,
             confidence: result.confidence,
             reasoning: result.reasoning,
@@ -139,6 +145,9 @@ export const sweepCameras = createServerFn({ method: "POST" })
           results.push({
             camera_id: cam.camera_id,
             camera_name: cam.camera_name,
+            lat: cam.lat,
+            lng: cam.lng,
+            image_url: cam.image_url,
             label: "clear",
             confidence: 0,
             reasoning: "Analysis failed",

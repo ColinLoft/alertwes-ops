@@ -2,9 +2,8 @@ import { ReactNode, useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Flame, Camera, ShieldAlert, BarChart3, Plane, Warehouse, FileText,
-  Settings as SettingsIcon, LogOut, Radio, Users, AlertOctagon, ClipboardList,
-  Home, Map as MapIcon, Grid3x3, Power,
-  type LucideIcon,
+  Settings as SettingsIcon, Radio, Users, AlertOctagon, Archive, History,
+  Map as MapIcon, Power, type LucideIcon,
 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { useAuth } from "@/lib/use-auth";
@@ -63,8 +62,8 @@ export const APPS: Record<Exclude<AppKey, "launcher">, AppConfig> = {
     nav: [
       { title: "Reports", url: "/reports", icon: FileText, fkey: "F2" },
       { title: "Analytics", url: "/analytics", icon: BarChart3, fkey: "F3" },
-      { title: "BOLO", url: "/bolo", icon: AlertOctagon, fkey: "F4" },
-      { title: "Citations", url: "/citations", icon: ClipboardList, fkey: "F5" },
+      { title: "Archive", url: "/archive", icon: Archive, fkey: "F4" },
+      { title: "Audit Log", url: "/audit", icon: History, fkey: "F5" },
     ],
   },
   flight: {
@@ -81,7 +80,7 @@ export const APPS: Record<Exclude<AppKey, "launcher">, AppConfig> = {
 };
 
 export function appForPath(pathname: string): AppKey {
-  if (/^\/(reports|bolo|citations|analytics)/.test(pathname)) return "records";
+  if (/^\/(reports|archive|audit|analytics|bolo|citations)/.test(pathname)) return "records";
   if (/^\/(fleet|bases)/.test(pathname)) return "flight";
   // CAD/Dispatch are merged — everything else falls through to the unified CAD shell.
   return "cad";

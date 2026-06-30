@@ -91,10 +91,17 @@ function AreaSection({
     try {
       let next = local;
       if (local.mode === "address") {
-        const resolved = await resolveAddress();
-        if (!resolved) return;
-        next = { ...local, center_lat: resolved.lat, center_lng: resolved.lng, address: resolved.display_name };
-        setLocal(next);
+        const trimmed = (local.address ?? "").trim();
+        if (!trimmed) { toast.error("Enter an address"); return; }
+        const addressChanged = trimmed !== (area?.address ?? "").trim();
+        const centerValid = Number.isFinite(Number(local.center_lat)) && Number.isFinite(Number(local.center_lng))
+          && !(Number(local.center_lat) === 0 && Number(local.center_lng) === 0);
+        if (addressChanged || !centerValid) {
+          const resolved = await resolveAddress();
+          if (!resolved) return;
+          next = { ...local, center_lat: resolved.lat, center_lng: resolved.lng, address: resolved.display_name };
+          setLocal(next);
+        }
       }
       await saver({
         mode: next.mode,

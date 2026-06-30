@@ -61,19 +61,38 @@ export interface GeocodeResult {
   lng: number;
 }
 
-/** Geocode an address via OpenStreetMap Nominatim. No API key required. */
+/** Geocode an address. Tries Nominatim, then Photon (Komoot) as a fallback. */
 export async function geocode(query: string): Promise<GeocodeResult | null> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
-  const data = (await res.json()) as Array<{ display_name: string; lat: string; lon: string }>;
-  if (data.length === 0) return null;
-  const first = data[0];
-  return {
-    display_name: first.display_name,
-    lat: parseFloat(first.lat),
-    lng: parseFloat(first.lon),
-  };
+  const q = query.trim();
+  if (!q) return null;
+  const variants = [q, /,\s*USA?$/i.test(q) ? q : `${q}, USA`];
+
+  // Nominatim
+  for (const v of variants) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=${encodeURIComponent(v)}`;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (res.ok) {
+        const data = (await res.json()) as Array<{ display_name: string; lat: string; lon: string }>;
+        if (data?.length) return { display_name: data[0].display_name, lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+    } catch { /* fall through */ }
+  }
+  // Photon fallback
+  for (const v of variants) {
+    try {
+      const url = `https://photon.komoot.io/api/?limit=1&q=${encodeURIComponent(v)}`;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (res.ok) {
+        const data: any = await res.json();
+        const f = data?.features?.[0];
+        if (f?.geometry?.coordinates) {
+          const [lng, lat] = f.geometry.coordinates;
+          const name = [f.properties?.name, f.properties?.city, f.properties?.state, f.properties?.country].filter(Boolean).join(", ");
+          return { display_name: name || v, lat, lng };
+        }
+      }
+    } catch { /* ignore */ }
+  }
+  return null;
 }
