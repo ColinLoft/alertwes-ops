@@ -61,6 +61,9 @@ async function analyzeOne(input: CameraInput, apiKey: string) {
 export interface SweepResultItem {
   camera_id: string;
   camera_name: string;
+  lat: number;
+  lng: number;
+  image_url: string;
   label: "fire" | "smoke" | "clear";
   confidence: number;
   reasoning: string;
