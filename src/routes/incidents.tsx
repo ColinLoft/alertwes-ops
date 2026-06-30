@@ -306,10 +306,23 @@ function IncidentsPage() {
                 <Popup><div className="text-xs"><div className="font-semibold">{i.title}</div><div>{STATUS_META[i.status].label} · {PRIORITY_META[i.priority].label}</div></div></Popup>
               </Marker>
             ))}
-            <CameraMarkersLayer cameras={inAreaCameras} selectedId={null} onSelect={() => {}} showPulse={false} />
-            <PlanesLayer refreshSeconds={30} radius={null} bounds={null} />
+            <CameraMarkersLayer
+              cameras={inAreaCameras}
+              selectedId={selectedCameraId}
+              onSelect={(id) => { setSelectedCameraId(id); setSelectedId(null); }}
+              showPulse={false}
+            />
+            <PlanesLayer refreshSeconds={30} radius={null} bounds={null} fixedBbox={planesBbox} />
           </MapContainer>
         </div>
+
+        {selectedCamera && (
+          <CameraPanel
+            camera={selectedCamera}
+            onClose={() => setSelectedCameraId(null)}
+            history={cameraHistory[selectedCamera.site.id] ?? []}
+          />
+        )}
 
 
         {selected && (
