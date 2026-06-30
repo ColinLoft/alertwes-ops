@@ -5,6 +5,28 @@ const jsonHeaders = {
   "cache-control": "public, max-age=10",
 };
 
+function planeFallback(reason: string, extra: Record<string, unknown> = {}) {
+  return new Response(
+    JSON.stringify({
+      time: Math.floor(Date.now() / 1000),
+      states: [],
+      fallback: true,
+      reason,
+      ...extra,
+    }),
+    { status: 200, headers: jsonHeaders },
+  );
+}
+
+function withHardDeadline<T>(promise: Promise<T>, timeoutMs: number, reason: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(reason)), timeoutMs);
+    }),
+  ]);
+}
+
 function num(value: string | null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
@@ -49,17 +71,18 @@ export const Route = createFileRoute("/api/planes")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const url = new URL(request.url);
-        const lamin = num(url.searchParams.get("lamin"));
-        const lomin = num(url.searchParams.get("lomin"));
-        const lamax = num(url.searchParams.get("lamax"));
-        const lomax = num(url.searchParams.get("lomax"));
-        if (lamin == null || lomin == null || lamax == null || lomax == null) {
-          return new Response(JSON.stringify({ error: "bbox required" }), {
-            status: 400,
-            headers: jsonHeaders,
-          });
-        }
+        try {
+          const url = new URL(request.url);
+          const lamin = num(url.searchParams.get("lamin"));
+          const lomin = num(url.searchParams.get("lomin"));
+          const lamax = num(url.searchParams.get("lamax"));
+          const lomax = num(url.searchParams.get("lomax"));
+          if (lamin == null || lomin == null || lamax == null || lomax == null) {
+            return new Response(JSON.stringify({ error: "bbox required" }), {
+              status: 400,
+              headers: jsonHeaders,
+            });
+          }
 
         const centerLat = (lamin + lamax) / 2;
         const centerLng = (lomin + lomax) / 2;
@@ -70,8 +93,8 @@ export const Route = createFileRoute("/api/planes")({
           `https://api.adsb.lol/v2/lat/${centerLat.toFixed(4)}/lon/${centerLng.toFixed(4)}/dist/${radiusMiles}`,
         );
 
-        try {
-          const res = await fetchWithTimeout(adsb.toString(), 7_000);
+          try {
+            const res = await withHardDeadline(fetchWithTimeout(adsb.toString(), 4_000), 4_500, "adsb deadline");
           if (res.ok) {
             const json = (await res.json()) as {
               ac?: Array<Record<string, unknown>>;
@@ -115,30 +138,29 @@ export const Route = createFileRoute("/api/planes")({
               headers: jsonHeaders,
             });
           }
-        } catch {
-          // Fall through to OpenSky as a secondary source.
-        }
+          } catch (e) {
+            console.warn("[api/planes] ADS-B failed:", String(e));
+            // Fall through to OpenSky as a secondary source.
+          }
 
-        const upstream = new URL("https://opensky-network.org/api/states/all");
-        upstream.searchParams.set("lamin", String(lamin));
-        upstream.searchParams.set("lomin", String(lomin));
-        upstream.searchParams.set("lamax", String(lamax));
-        upstream.searchParams.set("lomax", String(lomax));
-        try {
-          const res = await fetchWithTimeout(upstream.toString(), 7_000);
+          const upstream = new URL("https://opensky-network.org/api/states/all");
+          upstream.searchParams.set("lamin", String(lamin));
+          upstream.searchParams.set("lomin", String(lomin));
+          upstream.searchParams.set("lamax", String(lamax));
+          upstream.searchParams.set("lomax", String(lomax));
+          try {
+            const res = await withHardDeadline(fetchWithTimeout(upstream.toString(), 3_000), 3_500, "opensky deadline");
           if (res.ok) {
             return new Response(await res.text(), { status: 200, headers: jsonHeaders });
           }
-          return new Response(
-            JSON.stringify({ time: Math.floor(Date.now() / 1000), states: [], fallback: true, upstream_status: res.status }),
-            { status: 200, headers: jsonHeaders },
-          );
+            return planeFallback("opensky non-ok", { upstream_status: res.status });
+          } catch (e) {
+            console.warn("[api/planes] OpenSky failed:", String(e));
+            return planeFallback("upstream failed", { error: String(e) });
+          }
         } catch (e) {
-          console.warn("[api/planes] upstream failed:", String(e));
-          return new Response(
-            JSON.stringify({ time: Math.floor(Date.now() / 1000), states: [], fallback: true, error: String(e) }),
-            { status: 200, headers: jsonHeaders },
-          );
+          console.warn("[api/planes] handler failed:", String(e));
+          return planeFallback("handler failed", { error: String(e) });
         }
       },
     },
