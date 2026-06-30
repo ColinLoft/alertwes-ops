@@ -63,17 +63,14 @@ export interface GeocodeResult {
 
 /** Geocode an address via OpenStreetMap Nominatim. No API key required. */
 export async function geocode(query: string): Promise<GeocodeResult | null> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
-  const data = (await res.json()) as Array<{ display_name: string; lat: string; lon: string }>;
-  if (data.length === 0) return null;
-  const first = data[0];
-  return {
-    display_name: first.display_name,
-    lat: parseFloat(first.lat),
-    lng: parseFloat(first.lon),
+  const tryQuery = async (q: string) => {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=${encodeURIComponent(q)}`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
+    const data = (await res.json()) as Array<{ display_name: string; lat: string; lon: string }>;
+    if (!data.length) return null;
+    return { display_name: data[0].display_name, lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   };
+  const q = query.trim();
+  return (await tryQuery(q)) ?? (await tryQuery(q.replace(/\s+/g, " ").replace(/,\s*USA?$/i, "") + ", USA"));
 }
