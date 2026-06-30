@@ -213,7 +213,8 @@ export function isInDetectionArea(loc: CandidateLoc, area: DetectionArea | null 
   // If counties are selected, they narrow the state instead of selecting the whole state.
   if (selectedCounties.length > 0) {
     if (countyMatch) return true;
-    return getDetectionAreaBounds(area).some((b) => containsPoint(b, loc));
+    // For points without county metadata, use inset bbox to reduce neighboring-county overlap.
+    return getDetectionAreaBounds(area).some((b) => containsPointInset(b, loc));
   }
   return stateMatch;
 }
