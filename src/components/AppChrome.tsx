@@ -27,62 +27,31 @@ export interface AppConfig {
   nav: NavItem[];
 }
 
-export const APPS: Record<Exclude<AppKey, "launcher">, AppConfig> = {
-  cad: {
-    key: "cad",
-    name: "Aegis CAD / Dispatch",
-    short: "CAD",
-    accent: "oklch(0.72 0.18 45)", // amber
-    nav: [
-      { title: "Incidents", url: "/incidents", icon: Flame, fkey: "F2" },
-      { title: "Active Calls", url: "/dispatch", icon: Radio, fkey: "F3" },
-      { title: "Units", url: "/dispatch/units", icon: Users, fkey: "F4" },
-      { title: "Cameras", url: "/cameras", icon: Camera, fkey: "F5" },
-      { title: "Disaster", url: "/disaster", icon: ShieldAlert, fkey: "F6" },
-    ],
-  },
-  dispatch: {
-    key: "dispatch",
-    name: "Aegis CAD / Dispatch",
-    short: "CAD",
-    accent: "oklch(0.72 0.18 45)",
-    nav: [
-      { title: "Incidents", url: "/incidents", icon: Flame, fkey: "F2" },
-      { title: "Active Calls", url: "/dispatch", icon: Radio, fkey: "F3" },
-      { title: "Units", url: "/dispatch/units", icon: Users, fkey: "F4" },
-      { title: "Cameras", url: "/cameras", icon: Camera, fkey: "F5" },
-      { title: "Disaster", url: "/disaster", icon: ShieldAlert, fkey: "F6" },
-    ],
-  },
-  records: {
-    key: "records",
-    name: "Aegis Records",
-    short: "RECORDS",
-    accent: "oklch(0.68 0.05 250)", // slate
-    nav: [
-      { title: "Reports", url: "/reports", icon: FileText, fkey: "F2" },
-      { title: "Analytics", url: "/analytics", icon: BarChart3, fkey: "F3" },
-      { title: "Archive", url: "/archive", icon: Archive, fkey: "F4" },
-      { title: "Audit Log", url: "/audit", icon: History, fkey: "F5" },
-    ],
-  },
-  flight: {
-    key: "flight",
-    name: "Aegis Flight Ops",
-    short: "FLIGHT OPS",
-    accent: "oklch(0.72 0.15 200)", // cyan
-    nav: [
-      { title: "Fleet", url: "/fleet", icon: Plane, fkey: "F2" },
-      { title: "Bases", url: "/bases", icon: Warehouse, fkey: "F3" },
-      { title: "Map", url: "/incidents", icon: MapIcon, fkey: "F4" },
-    ],
-  },
+const UNIFIED: AppConfig = {
+  key: "cad",
+  name: "Aegis Command",
+  short: "AEGIS",
+  accent: "oklch(0.72 0.18 45)",
+  nav: [
+    { title: "Map", url: "/incidents", icon: MapIcon, fkey: "F2" },
+    { title: "Active Calls", url: "/dispatch", icon: Radio, fkey: "F3" },
+    { title: "Units", url: "/dispatch/units", icon: Users, fkey: "F4" },
+    { title: "Cameras", url: "/cameras", icon: Camera, fkey: "F5" },
+    { title: "Disaster", url: "/disaster", icon: ShieldAlert, fkey: "F6" },
+    { title: "Reports", url: "/reports", icon: FileText, fkey: "F7" },
+    { title: "Fleet", url: "/fleet", icon: Plane, fkey: "F8" },
+    { title: "Bases", url: "/bases", icon: Warehouse, fkey: "F9" },
+    { title: "Analytics", url: "/analytics", icon: BarChart3, fkey: "F10" },
+    { title: "Archive", url: "/archive", icon: Archive, fkey: "F11" },
+    { title: "Audit", url: "/audit", icon: History, fkey: "F12" },
+  ],
 };
 
-export function appForPath(pathname: string): AppKey {
-  if (/^\/(reports|archive|audit|analytics|bolo|citations)/.test(pathname)) return "records";
-  if (/^\/(fleet|bases)/.test(pathname)) return "flight";
-  // CAD/Dispatch are merged — everything else falls through to the unified CAD shell.
+export const APPS: Record<Exclude<AppKey, "launcher">, AppConfig> = {
+  cad: UNIFIED, dispatch: UNIFIED, records: UNIFIED, flight: UNIFIED,
+};
+
+export function appForPath(_pathname: string): AppKey {
   return "cad";
 }
 
