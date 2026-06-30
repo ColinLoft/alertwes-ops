@@ -101,10 +101,22 @@ function IncidentsPage() {
   }, [nws, area]);
   const redFlagCount = filteredAlerts.length;
 
-  // Radius filter for planes (only when area is in address/radius mode)
   const mapCenter = useMemo(() => getDetectionAreaCenter(area), [area]);
 
-
+  // Union of detection-area bounding boxes for plane fetching (independent of zoom).
+  const planesBbox = useMemo(() => {
+    const bs = getDetectionAreaBounds(area);
+    if (!bs.length) return null;
+    return bs.reduce(
+      (acc, b) => ({
+        lamin: Math.min(acc.lamin, b.lamin),
+        lomin: Math.min(acc.lomin, b.lomin),
+        lamax: Math.max(acc.lamax, b.lamax),
+        lomax: Math.max(acc.lomax, b.lomax),
+      }),
+      { lamin: bs[0].lamin, lomin: bs[0].lomin, lamax: bs[0].lamax, lomax: bs[0].lomax },
+    );
+  }, [area]);
 
   const visible = useMemo(() => {
     if (statusFilter === "all") return incidents;
@@ -112,6 +124,10 @@ function IncidentsPage() {
   }, [incidents, statusFilter]);
 
   const selected = useMemo(() => incidents.find((i) => i.id === selectedId) ?? null, [incidents, selectedId]);
+  const selectedCamera = useMemo(
+    () => (selectedCameraId ? inAreaCameras.find((c) => c.site.id === selectedCameraId) ?? cameras.find((c) => c.site.id === selectedCameraId) ?? null : null),
+    [selectedCameraId, inAreaCameras, cameras],
+  );
 
   const runSweep = async () => {
     if (!area) return toast.error("Detection area not loaded");
