@@ -3,8 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Flame, Camera, ShieldAlert, BarChart3, Plane, Warehouse, FileText,
   Settings as SettingsIcon, Radio, Users, AlertOctagon, Archive, History,
-  Map as MapIcon, Power,
-  type LucideIcon,
+  Power, type LucideIcon,
 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { useAuth } from "@/lib/use-auth";
