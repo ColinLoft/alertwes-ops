@@ -145,6 +145,9 @@ export const sweepCameras = createServerFn({ method: "POST" })
           results.push({
             camera_id: cam.camera_id,
             camera_name: cam.camera_name,
+            lat: cam.lat,
+            lng: cam.lng,
+            image_url: cam.image_url,
             label: "clear",
             confidence: 0,
             reasoning: "Analysis failed",
