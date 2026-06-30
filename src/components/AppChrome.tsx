@@ -63,8 +63,8 @@ export const APPS: Record<Exclude<AppKey, "launcher">, AppConfig> = {
     nav: [
       { title: "Reports", url: "/reports", icon: FileText, fkey: "F2" },
       { title: "Analytics", url: "/analytics", icon: BarChart3, fkey: "F3" },
-      { title: "BOLO", url: "/bolo", icon: AlertOctagon, fkey: "F4" },
-      { title: "Citations", url: "/citations", icon: ClipboardList, fkey: "F5" },
+      { title: "Archive", url: "/archive", icon: Archive, fkey: "F4" },
+      { title: "Audit Log", url: "/audit", icon: History, fkey: "F5" },
     ],
   },
   flight: {
