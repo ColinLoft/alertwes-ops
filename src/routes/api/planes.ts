@@ -55,6 +55,34 @@ async function fetchWithTimeout(url: string, timeoutMs: number) {
   }
 }
 
+async function fetchJsonWithTimeout<T>(url: string, timeoutMs: number): Promise<{ res: Response; json: T }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "user-agent": "ALERTWest-Viewer/1.0" },
+    });
+    return { res, json: (await res.json()) as T };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchTextWithTimeout(url: string, timeoutMs: number): Promise<{ res: Response; text: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { "user-agent": "ALERTWest-Viewer/1.0" },
+    });
+    return { res, text: await res.text() };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function ftToM(value: unknown) {
   return typeof value === "number" ? value * 0.3048 : null;
 }
@@ -94,12 +122,15 @@ export const Route = createFileRoute("/api/planes")({
         );
 
           try {
-            const res = await withHardDeadline(fetchWithTimeout(adsb.toString(), 4_000), 4_500, "adsb deadline");
+            const { res, json } = await withHardDeadline(
+              fetchJsonWithTimeout<{
+                ac?: Array<Record<string, unknown>>;
+                now?: number;
+              }>(adsb.toString(), 4_000),
+              4_500,
+              "adsb deadline",
+            );
           if (res.ok) {
-            const json = (await res.json()) as {
-              ac?: Array<Record<string, unknown>>;
-              now?: number;
-            };
             const now = typeof json.now === "number" ? json.now / 1000 : Date.now() / 1000;
             const states = (json.ac ?? [])
               .filter((ac) => typeof ac.lat === "number" && typeof ac.lon === "number")
@@ -149,9 +180,9 @@ export const Route = createFileRoute("/api/planes")({
           upstream.searchParams.set("lamax", String(lamax));
           upstream.searchParams.set("lomax", String(lomax));
           try {
-            const res = await withHardDeadline(fetchWithTimeout(upstream.toString(), 3_000), 3_500, "opensky deadline");
+            const { res, text } = await withHardDeadline(fetchTextWithTimeout(upstream.toString(), 3_000), 3_500, "opensky deadline");
           if (res.ok) {
-            return new Response(await res.text(), { status: 200, headers: jsonHeaders });
+            return new Response(text, { status: 200, headers: jsonHeaders });
           }
             return planeFallback("opensky non-ok", { upstream_status: res.status });
           } catch (e) {
