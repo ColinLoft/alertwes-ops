@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX, Activity, ThumbsDown, ShieldCheck } from "lucide-react";
 import { DispatchPanel } from "@/components/DispatchPanel";
 import { CameraMarkersLayer } from "@/components/CameraMarkersLayer";
+import { CameraPanel } from "@/components/CameraPanel";
 import { PlanesLayer } from "@/components/PlanesLayer";
 import { supabase } from "@/integrations/supabase/client";
 import { getFirmsHotspots } from "@/lib/firms.functions";
@@ -16,7 +17,8 @@ import { getRedFlagAlerts } from "@/lib/nws.functions";
 import { getWindAtPoint } from "@/lib/synoptic.functions";
 import { sweepCameras } from "@/lib/ai-detect.functions";
 import { fetchCameras, type Camera } from "@/lib/alertwest";
-import { fetchDetectionArea, getDetectionAreaCenter, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
+import { useCameraHistory } from "@/hooks/useCameraHistory";
+import { fetchDetectionArea, getDetectionAreaCenter, getDetectionAreaBounds, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
 import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, fetchSweepStatus, fetchCameraHealth, markFalsePositive, type SuggestionRow, type CameraHealth } from "@/lib/suggestions";
 import {
   fetchIncidents,
