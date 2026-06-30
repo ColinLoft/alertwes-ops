@@ -206,7 +206,11 @@ export function isInDetectionArea(loc: CandidateLoc, area: DetectionArea | null 
   // permissive if no location metadata available — fall back to radius
   if (!loc.state && !loc.county) {
     const bounds = getDetectionAreaBounds(area);
-    if (bounds.length) return bounds.some((b) => containsPoint(b, loc));
+    if (bounds.length) {
+      // Use inset bbox when counties selected to reduce neighbor-county overlap; full bbox for state-only.
+      const test = selectedCounties.length > 0 ? containsPointInset : containsPoint;
+      return bounds.some((b) => test(b, loc));
+    }
     return area.radius_mi > 0 &&
       haversineMi({ lat: Number(area.center_lat), lng: Number(area.center_lng) }, loc) <= Number(area.radius_mi);
   }
