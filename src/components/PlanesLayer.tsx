@@ -72,31 +72,33 @@ export function PlanesLayer({
   refreshSeconds = 20,
   radius = null,
   bounds = null,
+  fixedBbox = null,
 }: {
   refreshSeconds?: number;
   radius?: RadiusFilter | null;
   bounds?: PlaneBounds[] | null;
+  /** When set, query this bbox regardless of map viewport so zoom doesn't make planes disappear. */
+  fixedBbox?: Bbox | null;
 }) {
   const map = useMap();
-  const [bbox, setBbox] = useState<Bbox>(() => getBbox(map));
+  const [viewBbox, setViewBbox] = useState<Bbox>(() => getBbox(map));
   const [center, setCenter] = useState(() => {
     const c = map.getCenter();
     return { lat: c.lat, lng: c.lng };
   });
 
   useEffect(() => {
-    setBbox(getBbox(map));
+    setViewBbox(getBbox(map));
     const c = map.getCenter();
     setCenter({ lat: c.lat, lng: c.lng });
   }, [map]);
 
-  // Throttle map-driven updates so quick pan/zoom doesn't thrash React state.
   const throttleRef = useRef<number | null>(null);
   const scheduleUpdate = () => {
     if (throttleRef.current != null) return;
     throttleRef.current = window.setTimeout(() => {
       throttleRef.current = null;
-      setBbox(getBbox(map));
+      setViewBbox(getBbox(map));
       const c = map.getCenter();
       setCenter({ lat: c.lat, lng: c.lng });
     }, 180);
@@ -110,9 +112,11 @@ export function PlanesLayer({
     zoomend: scheduleUpdate,
   });
 
+  const queryBbox = fixedBbox ?? viewBbox;
+
   const { data } = useQuery({
-    queryKey: ["planes", bbox.lamin.toFixed(2), bbox.lomin.toFixed(2), bbox.lamax.toFixed(2), bbox.lomax.toFixed(2)],
-    queryFn: ({ signal }) => fetchPlanes(bbox, signal),
+    queryKey: ["planes", queryBbox.lamin.toFixed(2), queryBbox.lomin.toFixed(2), queryBbox.lamax.toFixed(2), queryBbox.lomax.toFixed(2)],
+    queryFn: ({ signal }) => fetchPlanes(queryBbox, signal),
     refetchInterval: Math.max(10, refreshSeconds) * 1000,
     staleTime: 8_000,
     retry: 1,
