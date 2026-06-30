@@ -46,6 +46,7 @@ function IncidentsPage() {
   const sweepFn = useServerFn(sweepCameras);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
   const [sweeping, setSweeping] = useState(false);
   const [sweepProgress, setSweepProgress] = useState<{ done: number; total: number } | null>(null);
