@@ -149,6 +149,16 @@ function containsPointInset(bounds: AreaBounds, loc: { lat: number; lng: number 
   );
 }
 
+/** Inscribed-circle test: point must be within half the smaller bbox dimension (in miles) of bbox centroid. */
+function withinInscribedCircle(bounds: AreaBounds, loc: { lat: number; lng: number }) {
+  const cLat = (bounds.lamin + bounds.lamax) / 2;
+  const cLng = (bounds.lomin + bounds.lomax) / 2;
+  const latMi = ((bounds.lamax - bounds.lamin) / 2) * 69;
+  const lngMi = ((bounds.lomax - bounds.lomin) / 2) * 69 * Math.cos((cLat * Math.PI) / 180);
+  const r = Math.min(latMi, lngMi);
+  return haversineMi({ lat: cLat, lng: cLng }, loc) <= r;
+}
+
 function radiusBounds(area: DetectionArea): AreaBounds {
   const lat = Number(area.center_lat);
   const lng = Number(area.center_lng);
