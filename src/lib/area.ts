@@ -137,6 +137,18 @@ function containsPoint(bounds: AreaBounds, loc: { lat: number; lng: number }) {
   return loc.lat >= bounds.lamin && loc.lat <= bounds.lamax && loc.lng >= bounds.lomin && loc.lng <= bounds.lomax;
 }
 
+/** Contracts a bbox toward its center by `pct` (e.g. 0.18 = 18% inset) so adjacent-county overlap is reduced for point-in-area checks. */
+function containsPointInset(bounds: AreaBounds, loc: { lat: number; lng: number }, pct = 0.18) {
+  const dLat = (bounds.lamax - bounds.lamin) * pct;
+  const dLng = (bounds.lomax - bounds.lomin) * pct;
+  return (
+    loc.lat >= bounds.lamin + dLat &&
+    loc.lat <= bounds.lamax - dLat &&
+    loc.lng >= bounds.lomin + dLng &&
+    loc.lng <= bounds.lomax - dLng
+  );
+}
+
 function radiusBounds(area: DetectionArea): AreaBounds {
   const lat = Number(area.center_lat);
   const lng = Number(area.center_lng);
