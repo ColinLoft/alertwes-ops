@@ -480,7 +480,11 @@ function TriageStrip({ suggestions, cameraHealth, onConfirm, onFalsePositive, on
             const healthColor = !health ? "text-muted-foreground" : health.score >= 75 ? "text-emerald-300" : health.score >= 50 ? "text-amber-300" : "text-rose-300";
             return (
               <div key={s.id} className="shrink-0 w-[280px] rounded-lg border border-white/10 bg-white/[0.04] overflow-hidden">
-                {s.image_url && <img src={s.image_url} alt="" className="w-full h-[100px] object-cover" />}
+                {s.image_url && (
+                  <button onClick={() => onFocusCamera(s)} title="Show camera on map" className="block w-full">
+                    <img src={s.image_url} alt="" className="w-full h-[100px] object-cover transition hover:brightness-110" />
+                  </button>
+                )}
                 <div className="p-2 space-y-1.5">
                   <div className="flex items-center gap-1.5">
                     <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${s.label === "fire" ? "bg-rose-500/20 text-rose-300" : "bg-amber-500/20 text-amber-300"}`}>
