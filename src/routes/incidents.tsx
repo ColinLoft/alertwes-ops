@@ -46,6 +46,9 @@ function IncidentsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
   const [sweeping, setSweeping] = useState(false);
+  const [sweepProgress, setSweepProgress] = useState<{ done: number; total: number } | null>(null);
+  const [sweepResults, setSweepResults] = useState<null | { results: any[]; analyzed: number; created: number }>(null);
+
 
   // Realtime
   useEffect(() => {
@@ -120,31 +123,49 @@ function IncidentsPage() {
       if (ageMin > 120) return false;
       return isInDetectionArea({ lat, lng, state: c.site.state, county: c.site.county }, area);
     });
-    const top = candidates.slice(0, 10);
-    if (top.length === 0) return toast.error("No in-area cameras with recent frames");
+    if (candidates.length === 0) return toast.error("No in-area cameras with recent frames");
     setSweeping(true);
-    toast.message(`AI sweeping ${top.length} cameras…`);
+    setSweepResults(null);
+    setSweepProgress({ done: 0, total: candidates.length });
+    toast.message(`AI sweeping ${candidates.length} cameras…`);
     try {
-      const res = await sweepFn({
-        data: {
-          cameras: top.map((c) => ({
-            camera_id: c.site.id,
-            camera_name: c.name,
-            image_url: c.image.url!,
-            image_time: c.image.time!,
-            lat: Number(c.site.latitude),
-            lng: Number(c.site.longitude),
-            state: c.site.state,
-            county: c.site.county,
-          })),
-        },
+      const CHUNK = 25;
+      const allResults: any[] = [];
+      let analyzed = 0, created = 0;
+      for (let i = 0; i < candidates.length; i += CHUNK) {
+        const slice = candidates.slice(i, i + CHUNK);
+        const res = await sweepFn({
+          data: {
+            cameras: slice.map((c) => ({
+              camera_id: c.site.id,
+              camera_name: c.name,
+              image_url: c.image.url!,
+              image_time: c.image.time!,
+              lat: Number(c.site.latitude),
+              lng: Number(c.site.longitude),
+              state: c.site.state,
+              county: c.site.county,
+            })),
+          },
+        });
+        allResults.push(...(res.results ?? []));
+        analyzed += res.analyzed;
+        created += res.created;
+        setSweepProgress({ done: Math.min(i + CHUNK, candidates.length), total: candidates.length });
+      }
+      // Sort by interesting first
+      allResults.sort((a, b) => {
+        const rank = (l: string) => (l === "fire" ? 0 : l === "smoke" ? 1 : 2);
+        return rank(a.label) - rank(b.label) || (b.confidence ?? 0) - (a.confidence ?? 0);
       });
-      toast.success(`Analyzed ${res.analyzed} · ${res.created} new suggestion(s)`);
+      setSweepResults({ results: allResults, analyzed, created });
+      toast.success(`Sweep complete — analyzed ${analyzed}, ${created} flagged for review`);
       qc.invalidateQueries({ queryKey: ["suggestions"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Sweep failed");
-    } finally { setSweeping(false); }
+    } finally { setSweeping(false); setSweepProgress(null); }
   };
+
 
   const promoteHotspot = async (lat: number, lng: number, frp: number, conf: string) => {
     if (area && !isInDetectionArea({ lat, lng }, area)) {
