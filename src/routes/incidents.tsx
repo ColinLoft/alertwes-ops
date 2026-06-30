@@ -291,7 +291,7 @@ function IncidentsPage() {
               </Marker>
             ))}
             <CameraMarkersLayer cameras={inAreaCameras} selectedId={null} onSelect={() => {}} showPulse={false} />
-            {area && <PlanesLayer refreshSeconds={30} radius={planesRadius} bounds={areaBounds} />}
+            <PlanesLayer refreshSeconds={30} radius={null} bounds={null} />
           </MapContainer>
         </div>
 
@@ -304,9 +304,74 @@ function IncidentsPage() {
             }} windFn={windFn} />
         )}
       </div>
+
+      {(sweeping || sweepResults) && (
+        <SweepResultsModal
+          sweeping={sweeping}
+          progress={sweepProgress}
+          data={sweepResults}
+          onClose={() => setSweepResults(null)}
+        />
+      )}
     </div>
   );
 }
+
+function SweepResultsModal({ sweeping, progress, data, onClose }: {
+  sweeping: boolean;
+  progress: { done: number; total: number } | null;
+  data: { results: any[]; analyzed: number; created: number } | null;
+  onClose: () => void;
+}) {
+  const pct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-xl border border-white/10 bg-[oklch(0.14_0.01_250)/0.96] shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <div className="text-sm font-semibold">AI Sweep Results</div>
+          {sweeping ? (
+            <span className="text-[11px] text-muted-foreground">Analyzing {progress?.done ?? 0} / {progress?.total ?? 0}…</span>
+          ) : data ? (
+            <span className="text-[11px] text-muted-foreground">{data.analyzed} cameras analyzed · {data.created} queued for review</span>
+          ) : null}
+          {!sweeping && (
+            <button onClick={onClose} className="ml-auto text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        {sweeping && (
+          <div className="px-4 py-2 border-b border-white/10">
+            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 overflow-auto p-3 space-y-1.5">
+          {(data?.results ?? []).length === 0 && !sweeping && (
+            <div className="text-xs text-muted-foreground text-center py-8">No results.</div>
+          )}
+          {(data?.results ?? []).map((r, i) => {
+            const tone = r.label === "fire" ? "bg-rose-500/15 border-rose-500/40 text-rose-200"
+              : r.label === "smoke" ? "bg-amber-500/15 border-amber-500/40 text-amber-200"
+              : "bg-white/[0.03] border-white/10 text-foreground/80";
+            return (
+              <div key={i} className={`rounded border px-3 py-2 text-[11.5px] flex items-center gap-3 ${tone}`}>
+                <span className="uppercase tracking-wider text-[10px] font-bold w-12">{r.label}</span>
+                <span className="font-mono text-[11px] w-12 text-right">{r.confidence}%</span>
+                <span className="flex-1 truncate" title={r.camera_name}>{r.camera_name}</span>
+                {r.queued && <span className="rounded bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">Queued</span>}
+                {r.error && <span className="text-rose-300 text-[10px]">err</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
