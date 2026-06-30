@@ -314,15 +314,14 @@ function IncidentsPage() {
             />
             <PlanesLayer refreshSeconds={30} radius={null} bounds={null} fixedBbox={planesBbox} />
           </MapContainer>
+          {selectedCamera && (
+            <CameraPanel
+              camera={selectedCamera}
+              onClose={() => setSelectedCameraId(null)}
+              history={cameraHistory[selectedCamera.site.id] ?? []}
+            />
+          )}
         </div>
-
-        {selectedCamera && (
-          <CameraPanel
-            camera={selectedCamera}
-            onClose={() => setSelectedCameraId(null)}
-            history={cameraHistory[selectedCamera.site.id] ?? []}
-          />
-        )}
 
 
         {selected && (
