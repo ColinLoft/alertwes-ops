@@ -137,6 +137,18 @@ function containsPoint(bounds: AreaBounds, loc: { lat: number; lng: number }) {
   return loc.lat >= bounds.lamin && loc.lat <= bounds.lamax && loc.lng >= bounds.lomin && loc.lng <= bounds.lomax;
 }
 
+/** Contracts a bbox toward its center by `pct` (e.g. 0.18 = 18% inset) so adjacent-county overlap is reduced for point-in-area checks. */
+function containsPointInset(bounds: AreaBounds, loc: { lat: number; lng: number }, pct = 0.18) {
+  const dLat = (bounds.lamax - bounds.lamin) * pct;
+  const dLng = (bounds.lomax - bounds.lomin) * pct;
+  return (
+    loc.lat >= bounds.lamin + dLat &&
+    loc.lat <= bounds.lamax - dLat &&
+    loc.lng >= bounds.lomin + dLng &&
+    loc.lng <= bounds.lomax - dLng
+  );
+}
+
 function radiusBounds(area: DetectionArea): AreaBounds {
   const lat = Number(area.center_lat);
   const lng = Number(area.center_lng);
@@ -194,14 +206,19 @@ export function isInDetectionArea(loc: CandidateLoc, area: DetectionArea | null 
   // permissive if no location metadata available — fall back to radius
   if (!loc.state && !loc.county) {
     const bounds = getDetectionAreaBounds(area);
-    if (bounds.length) return bounds.some((b) => containsPoint(b, loc));
+    if (bounds.length) {
+      // Use inset bbox when counties selected to reduce neighbor-county overlap; full bbox for state-only.
+      const test = selectedCounties.length > 0 ? containsPointInset : containsPoint;
+      return bounds.some((b) => test(b, loc));
+    }
     return area.radius_mi > 0 &&
       haversineMi({ lat: Number(area.center_lat), lng: Number(area.center_lng) }, loc) <= Number(area.radius_mi);
   }
   // If counties are selected, they narrow the state instead of selecting the whole state.
   if (selectedCounties.length > 0) {
     if (countyMatch) return true;
-    return getDetectionAreaBounds(area).some((b) => containsPoint(b, loc));
+    // For points without county metadata, use inset bbox to reduce neighboring-county overlap.
+    return getDetectionAreaBounds(area).some((b) => containsPointInset(b, loc));
   }
   return stateMatch;
 }

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX, Activity, ThumbsDown, ShieldCheck } from "lucide-react";
 import { DispatchPanel } from "@/components/DispatchPanel";
 import { CameraMarkersLayer } from "@/components/CameraMarkersLayer";
+import { CameraPanel } from "@/components/CameraPanel";
 import { PlanesLayer } from "@/components/PlanesLayer";
 import { supabase } from "@/integrations/supabase/client";
 import { getFirmsHotspots } from "@/lib/firms.functions";
@@ -16,7 +17,8 @@ import { getRedFlagAlerts } from "@/lib/nws.functions";
 import { getWindAtPoint } from "@/lib/synoptic.functions";
 import { sweepCameras } from "@/lib/ai-detect.functions";
 import { fetchCameras, type Camera } from "@/lib/alertwest";
-import { fetchDetectionArea, getDetectionAreaCenter, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
+import { useCameraHistory } from "@/hooks/useCameraHistory";
+import { fetchDetectionArea, getDetectionAreaCenter, getDetectionAreaBounds, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
 import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, fetchSweepStatus, fetchCameraHealth, markFalsePositive, type SuggestionRow, type CameraHealth } from "@/lib/suggestions";
 import {
   fetchIncidents,
@@ -44,6 +46,7 @@ function IncidentsPage() {
   const sweepFn = useServerFn(sweepCameras);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
   const [sweeping, setSweeping] = useState(false);
   const [sweepProgress, setSweepProgress] = useState<{ done: number; total: number } | null>(null);
@@ -66,7 +69,8 @@ function IncidentsPage() {
   const { data: nws } = useQuery({ queryKey: ["nws-redflag"], queryFn: () => nwsFn(), refetchInterval: 5 * 60_000, staleTime: 60_000 });
   const { data: area } = useQuery({ queryKey: ["detection_area"], queryFn: fetchDetectionArea });
   const { data: suggestions = [] } = useQuery({ queryKey: ["suggestions"], queryFn: fetchPendingSuggestions, refetchInterval: 30_000 });
-  const { data: cameras = [] } = useQuery({ queryKey: ["aw-cameras"], queryFn: fetchCameras, staleTime: 5 * 60_000 });
+  const { data: cameras = [], dataUpdatedAt: camerasUpdatedAt } = useQuery({ queryKey: ["aw-cameras"], queryFn: fetchCameras, staleTime: 5 * 60_000, refetchInterval: 60_000 });
+  const cameraHistory = useCameraHistory(cameras, camerasUpdatedAt);
   const { data: sweepStatus } = useQuery({ queryKey: ["sweep_status"], queryFn: fetchSweepStatus, refetchInterval: 15_000 });
   const { data: cameraHealth = {} } = useQuery({ queryKey: ["camera_health"], queryFn: fetchCameraHealth, refetchInterval: 60_000 });
 
@@ -97,10 +101,22 @@ function IncidentsPage() {
   }, [nws, area]);
   const redFlagCount = filteredAlerts.length;
 
-  // Radius filter for planes (only when area is in address/radius mode)
   const mapCenter = useMemo(() => getDetectionAreaCenter(area), [area]);
 
-
+  // Union of detection-area bounding boxes for plane fetching (independent of zoom).
+  const planesBbox = useMemo(() => {
+    const bs = getDetectionAreaBounds(area);
+    if (!bs.length) return null;
+    return bs.reduce(
+      (acc, b) => ({
+        lamin: Math.min(acc.lamin, b.lamin),
+        lomin: Math.min(acc.lomin, b.lomin),
+        lamax: Math.max(acc.lamax, b.lamax),
+        lomax: Math.max(acc.lomax, b.lomax),
+      }),
+      { lamin: bs[0].lamin, lomin: bs[0].lomin, lamax: bs[0].lamax, lomax: bs[0].lomax },
+    );
+  }, [area]);
 
   const visible = useMemo(() => {
     if (statusFilter === "all") return incidents;
@@ -108,6 +124,10 @@ function IncidentsPage() {
   }, [incidents, statusFilter]);
 
   const selected = useMemo(() => incidents.find((i) => i.id === selectedId) ?? null, [incidents, selectedId]);
+  const selectedCamera = useMemo(
+    () => (selectedCameraId ? inAreaCameras.find((c) => c.site.id === selectedCameraId) ?? cameras.find((c) => c.site.id === selectedCameraId) ?? null : null),
+    [selectedCameraId, inAreaCameras, cameras],
+  );
 
   const runSweep = async () => {
     if (!area) return toast.error("Detection area not loaded");
@@ -286,9 +306,21 @@ function IncidentsPage() {
                 <Popup><div className="text-xs"><div className="font-semibold">{i.title}</div><div>{STATUS_META[i.status].label} · {PRIORITY_META[i.priority].label}</div></div></Popup>
               </Marker>
             ))}
-            <CameraMarkersLayer cameras={inAreaCameras} selectedId={null} onSelect={() => {}} showPulse={false} />
-            <PlanesLayer refreshSeconds={30} radius={null} bounds={null} />
+            <CameraMarkersLayer
+              cameras={inAreaCameras}
+              selectedId={selectedCameraId}
+              onSelect={(id) => { setSelectedCameraId(id); setSelectedId(null); }}
+              showPulse={false}
+            />
+            <PlanesLayer refreshSeconds={30} radius={null} bounds={null} fixedBbox={planesBbox} />
           </MapContainer>
+          {selectedCamera && (
+            <CameraPanel
+              camera={selectedCamera}
+              onClose={() => setSelectedCameraId(null)}
+              history={cameraHistory[selectedCamera.site.id] ?? []}
+            />
+          )}
         </div>
 
 
