@@ -97,7 +97,7 @@ export function CameraPanel({
             isLiveActive={!previewOverride}
           />
 
-          <PTZDisplay camera={camera} />
+
 
           <div className="grid grid-cols-2 gap-2">
             <Stat label="Location">
