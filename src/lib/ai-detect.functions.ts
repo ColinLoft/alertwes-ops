@@ -58,56 +58,96 @@ async function analyzeOne(input: CameraInput, apiKey: string) {
   return { label, confidence, reasoning: String(parsed.reasoning ?? "").slice(0, 240) };
 }
 
+export interface SweepResultItem {
+  camera_id: string;
+  camera_name: string;
+  label: "fire" | "smoke" | "clear";
+  confidence: number;
+  reasoning: string;
+  queued: boolean;
+  error?: string;
+}
+
 export const sweepCameras = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { cameras: CameraInput[] }) => {
     if (!Array.isArray(d?.cameras)) throw new Error("cameras required");
-    return { cameras: d.cameras.slice(0, 12) }; // hard cap to keep request bounded
+    return { cameras: d.cameras.slice(0, 50) }; // hard cap per call
   })
   .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) return { created: 0, errors: ["LOVABLE_API_KEY missing"], analyzed: 0 };
+    if (!apiKey) return { created: 0, errors: ["LOVABLE_API_KEY missing"], analyzed: 0, results: [] as SweepResultItem[] };
 
     const supabase = context.supabase;
-    const created: string[] = [];
     const errors: string[] = [];
+    const results: SweepResultItem[] = [];
+    let created = 0;
     let analyzed = 0;
 
-    for (const cam of data.cameras) {
-      try {
-        const result = await analyzeOne(cam, apiKey);
-        analyzed++;
-        if (result.label === "clear" || result.confidence < 55) continue;
-        const { data: row, error } = await supabase
-          .from("incident_suggestions")
-          .insert({
-            source: "camera",
+    // Process in small parallel batches to keep latency reasonable.
+    const BATCH = 5;
+    for (let i = 0; i < data.cameras.length; i += BATCH) {
+      const chunk = data.cameras.slice(i, i + BATCH);
+      const settled = await Promise.allSettled(
+        chunk.map(async (cam) => {
+          const result = await analyzeOne(cam, apiKey);
+          analyzed++;
+          let queued = false;
+          if (result.label !== "clear" && result.confidence >= 55) {
+            const { data: row, error } = await supabase
+              .from("incident_suggestions")
+              .insert({
+                source: "camera",
+                camera_id: cam.camera_id,
+                camera_name: cam.camera_name,
+                lat: cam.lat,
+                lng: cam.lng,
+                state: cam.state ?? null,
+                county: cam.county ?? null,
+                image_url: cam.image_url,
+                image_time: cam.image_time,
+                label: result.label,
+                confidence: result.confidence,
+                reasoning: result.reasoning,
+                status: "pending",
+              })
+              .select("id")
+              .single();
+            if (error) {
+              if (!String(error.message).toLowerCase().includes("duplicate")) {
+                errors.push(`${cam.camera_id}: ${error.message}`);
+              }
+            } else if (row) {
+              created++;
+              queued = true;
+            }
+          }
+          results.push({
             camera_id: cam.camera_id,
             camera_name: cam.camera_name,
-            lat: cam.lat,
-            lng: cam.lng,
-            state: cam.state ?? null,
-            county: cam.county ?? null,
-            image_url: cam.image_url,
-            image_time: cam.image_time,
-            label: result.label,
+            label: result.label as any,
             confidence: result.confidence,
             reasoning: result.reasoning,
-            status: "pending",
-          })
-          .select("id")
-          .single();
-        if (error) {
-          // unique constraint = already analyzed this frame; skip silently
-          if (!String(error.message).toLowerCase().includes("duplicate")) {
-            errors.push(`${cam.camera_id}: ${error.message}`);
-          }
-        } else if (row) {
-          created.push(row.id);
+            queued,
+          });
+        }),
+      );
+      settled.forEach((s, idx) => {
+        if (s.status === "rejected") {
+          const cam = chunk[idx];
+          errors.push(`${cam.camera_id}: ${s.reason?.message ?? "failed"}`);
+          results.push({
+            camera_id: cam.camera_id,
+            camera_name: cam.camera_name,
+            label: "clear",
+            confidence: 0,
+            reasoning: "Analysis failed",
+            queued: false,
+            error: String(s.reason?.message ?? "failed"),
+          });
         }
-      } catch (e: any) {
-        errors.push(`${cam.camera_id}: ${e?.message ?? "failed"}`);
-      }
+      });
     }
-    return { created: created.length, analyzed, errors: errors.slice(0, 5) };
+    return { created, analyzed, errors: errors.slice(0, 5), results };
   });
+

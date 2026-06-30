@@ -31,28 +31,28 @@ export interface AppConfig {
 export const APPS: Record<Exclude<AppKey, "launcher">, AppConfig> = {
   cad: {
     key: "cad",
-    name: "Aegis CAD",
+    name: "Aegis CAD / Dispatch",
     short: "CAD",
     accent: "oklch(0.72 0.18 45)", // amber
     nav: [
-      { title: "Home", url: "/", icon: Home, fkey: "F2" },
-      { title: "Incidents", url: "/incidents", icon: Flame, fkey: "F3" },
-      { title: "Map", url: "/incidents", icon: MapIcon, fkey: "F4" },
+      { title: "Incidents", url: "/incidents", icon: Flame, fkey: "F2" },
+      { title: "Active Calls", url: "/dispatch", icon: Radio, fkey: "F3" },
+      { title: "Units", url: "/dispatch/units", icon: Users, fkey: "F4" },
       { title: "Cameras", url: "/cameras", icon: Camera, fkey: "F5" },
       { title: "Disaster", url: "/disaster", icon: ShieldAlert, fkey: "F6" },
-      { title: "Analytics", url: "/analytics", icon: BarChart3, fkey: "F7" },
     ],
   },
   dispatch: {
     key: "dispatch",
-    name: "Aegis Dispatch",
-    short: "DISPATCH",
-    accent: "oklch(0.68 0.18 240)", // blue
+    name: "Aegis CAD / Dispatch",
+    short: "CAD",
+    accent: "oklch(0.72 0.18 45)",
     nav: [
-      { title: "Home", url: "/", icon: Home, fkey: "F2" },
+      { title: "Incidents", url: "/incidents", icon: Flame, fkey: "F2" },
       { title: "Active Calls", url: "/dispatch", icon: Radio, fkey: "F3" },
       { title: "Units", url: "/dispatch/units", icon: Users, fkey: "F4" },
-      { title: "Map", url: "/incidents", icon: MapIcon, fkey: "F5" },
+      { title: "Cameras", url: "/cameras", icon: Camera, fkey: "F5" },
+      { title: "Disaster", url: "/disaster", icon: ShieldAlert, fkey: "F6" },
     ],
   },
   records: {
@@ -61,8 +61,8 @@ export const APPS: Record<Exclude<AppKey, "launcher">, AppConfig> = {
     short: "RECORDS",
     accent: "oklch(0.68 0.05 250)", // slate
     nav: [
-      { title: "Home", url: "/", icon: Home, fkey: "F2" },
-      { title: "Reports", url: "/reports", icon: FileText, fkey: "F3" },
+      { title: "Reports", url: "/reports", icon: FileText, fkey: "F2" },
+      { title: "Analytics", url: "/analytics", icon: BarChart3, fkey: "F3" },
       { title: "BOLO", url: "/bolo", icon: AlertOctagon, fkey: "F4" },
       { title: "Citations", url: "/citations", icon: ClipboardList, fkey: "F5" },
     ],
@@ -73,22 +73,20 @@ export const APPS: Record<Exclude<AppKey, "launcher">, AppConfig> = {
     short: "FLIGHT OPS",
     accent: "oklch(0.72 0.15 200)", // cyan
     nav: [
-      { title: "Home", url: "/", icon: Home, fkey: "F2" },
-      { title: "Fleet", url: "/fleet", icon: Plane, fkey: "F3" },
-      { title: "Bases", url: "/bases", icon: Warehouse, fkey: "F4" },
-      { title: "Map", url: "/incidents", icon: MapIcon, fkey: "F5" },
+      { title: "Fleet", url: "/fleet", icon: Plane, fkey: "F2" },
+      { title: "Bases", url: "/bases", icon: Warehouse, fkey: "F3" },
+      { title: "Map", url: "/incidents", icon: MapIcon, fkey: "F4" },
     ],
   },
 };
 
 export function appForPath(pathname: string): AppKey {
-  if (pathname === "/") return "launcher";
-  if (/^\/(incidents|cameras|disaster|analytics)/.test(pathname)) return "cad";
-  if (/^\/dispatch/.test(pathname)) return "dispatch";
-  if (/^\/(reports|bolo|citations)/.test(pathname)) return "records";
+  if (/^\/(reports|bolo|citations|analytics)/.test(pathname)) return "records";
   if (/^\/(fleet|bases)/.test(pathname)) return "flight";
+  // CAD/Dispatch are merged — everything else falls through to the unified CAD shell.
   return "cad";
 }
+
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);

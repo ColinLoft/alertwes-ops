@@ -16,7 +16,7 @@ import { getRedFlagAlerts } from "@/lib/nws.functions";
 import { getWindAtPoint } from "@/lib/synoptic.functions";
 import { sweepCameras } from "@/lib/ai-detect.functions";
 import { fetchCameras, type Camera } from "@/lib/alertwest";
-import { fetchDetectionArea, getDetectionAreaBounds, getDetectionAreaCenter, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
+import { fetchDetectionArea, getDetectionAreaCenter, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
 import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, fetchSweepStatus, fetchCameraHealth, markFalsePositive, type SuggestionRow, type CameraHealth } from "@/lib/suggestions";
 import {
   fetchIncidents,
@@ -46,6 +46,9 @@ function IncidentsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
   const [sweeping, setSweeping] = useState(false);
+  const [sweepProgress, setSweepProgress] = useState<{ done: number; total: number } | null>(null);
+  const [sweepResults, setSweepResults] = useState<null | { results: any[]; analyzed: number; created: number }>(null);
+
 
   // Realtime
   useEffect(() => {
@@ -95,12 +98,8 @@ function IncidentsPage() {
   const redFlagCount = filteredAlerts.length;
 
   // Radius filter for planes (only when area is in address/radius mode)
-  const planesRadius = useMemo(() => {
-    if (!area || area.mode !== "address") return null;
-    return { address: area.address ?? "", lat: Number(area.center_lat), lng: Number(area.center_lng), km: Number(area.radius_mi) };
-  }, [area]);
-  const areaBounds = useMemo(() => getDetectionAreaBounds(area), [area]);
   const mapCenter = useMemo(() => getDetectionAreaCenter(area), [area]);
+
 
 
   const visible = useMemo(() => {
@@ -120,31 +119,49 @@ function IncidentsPage() {
       if (ageMin > 120) return false;
       return isInDetectionArea({ lat, lng, state: c.site.state, county: c.site.county }, area);
     });
-    const top = candidates.slice(0, 10);
-    if (top.length === 0) return toast.error("No in-area cameras with recent frames");
+    if (candidates.length === 0) return toast.error("No in-area cameras with recent frames");
     setSweeping(true);
-    toast.message(`AI sweeping ${top.length} cameras…`);
+    setSweepResults(null);
+    setSweepProgress({ done: 0, total: candidates.length });
+    toast.message(`AI sweeping ${candidates.length} cameras…`);
     try {
-      const res = await sweepFn({
-        data: {
-          cameras: top.map((c) => ({
-            camera_id: c.site.id,
-            camera_name: c.name,
-            image_url: c.image.url!,
-            image_time: c.image.time!,
-            lat: Number(c.site.latitude),
-            lng: Number(c.site.longitude),
-            state: c.site.state,
-            county: c.site.county,
-          })),
-        },
+      const CHUNK = 25;
+      const allResults: any[] = [];
+      let analyzed = 0, created = 0;
+      for (let i = 0; i < candidates.length; i += CHUNK) {
+        const slice = candidates.slice(i, i + CHUNK);
+        const res = await sweepFn({
+          data: {
+            cameras: slice.map((c) => ({
+              camera_id: c.site.id,
+              camera_name: c.name,
+              image_url: c.image.url!,
+              image_time: c.image.time!,
+              lat: Number(c.site.latitude),
+              lng: Number(c.site.longitude),
+              state: c.site.state,
+              county: c.site.county,
+            })),
+          },
+        });
+        allResults.push(...(res.results ?? []));
+        analyzed += res.analyzed;
+        created += res.created;
+        setSweepProgress({ done: Math.min(i + CHUNK, candidates.length), total: candidates.length });
+      }
+      // Sort by interesting first
+      allResults.sort((a, b) => {
+        const rank = (l: string) => (l === "fire" ? 0 : l === "smoke" ? 1 : 2);
+        return rank(a.label) - rank(b.label) || (b.confidence ?? 0) - (a.confidence ?? 0);
       });
-      toast.success(`Analyzed ${res.analyzed} · ${res.created} new suggestion(s)`);
+      setSweepResults({ results: allResults, analyzed, created });
+      toast.success(`Sweep complete — analyzed ${analyzed}, ${created} flagged for review`);
       qc.invalidateQueries({ queryKey: ["suggestions"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Sweep failed");
-    } finally { setSweeping(false); }
+    } finally { setSweeping(false); setSweepProgress(null); }
   };
+
 
   const promoteHotspot = async (lat: number, lng: number, frp: number, conf: string) => {
     if (area && !isInDetectionArea({ lat, lng }, area)) {
@@ -270,7 +287,7 @@ function IncidentsPage() {
               </Marker>
             ))}
             <CameraMarkersLayer cameras={inAreaCameras} selectedId={null} onSelect={() => {}} showPulse={false} />
-            {area && <PlanesLayer refreshSeconds={30} radius={planesRadius} bounds={areaBounds} />}
+            <PlanesLayer refreshSeconds={30} radius={null} bounds={null} />
           </MapContainer>
         </div>
 
@@ -283,9 +300,74 @@ function IncidentsPage() {
             }} windFn={windFn} />
         )}
       </div>
+
+      {(sweeping || sweepResults) && (
+        <SweepResultsModal
+          sweeping={sweeping}
+          progress={sweepProgress}
+          data={sweepResults}
+          onClose={() => setSweepResults(null)}
+        />
+      )}
     </div>
   );
 }
+
+function SweepResultsModal({ sweeping, progress, data, onClose }: {
+  sweeping: boolean;
+  progress: { done: number; total: number } | null;
+  data: { results: any[]; analyzed: number; created: number } | null;
+  onClose: () => void;
+}) {
+  const pct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-xl border border-white/10 bg-[oklch(0.14_0.01_250)/0.96] shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <div className="text-sm font-semibold">AI Sweep Results</div>
+          {sweeping ? (
+            <span className="text-[11px] text-muted-foreground">Analyzing {progress?.done ?? 0} / {progress?.total ?? 0}…</span>
+          ) : data ? (
+            <span className="text-[11px] text-muted-foreground">{data.analyzed} cameras analyzed · {data.created} queued for review</span>
+          ) : null}
+          {!sweeping && (
+            <button onClick={onClose} className="ml-auto text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        {sweeping && (
+          <div className="px-4 py-2 border-b border-white/10">
+            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )}
+        <div className="flex-1 overflow-auto p-3 space-y-1.5">
+          {(data?.results ?? []).length === 0 && !sweeping && (
+            <div className="text-xs text-muted-foreground text-center py-8">No results.</div>
+          )}
+          {(data?.results ?? []).map((r, i) => {
+            const tone = r.label === "fire" ? "bg-rose-500/15 border-rose-500/40 text-rose-200"
+              : r.label === "smoke" ? "bg-amber-500/15 border-amber-500/40 text-amber-200"
+              : "bg-white/[0.03] border-white/10 text-foreground/80";
+            return (
+              <div key={i} className={`rounded border px-3 py-2 text-[11.5px] flex items-center gap-3 ${tone}`}>
+                <span className="uppercase tracking-wider text-[10px] font-bold w-12">{r.label}</span>
+                <span className="font-mono text-[11px] w-12 text-right">{r.confidence}%</span>
+                <span className="flex-1 truncate" title={r.camera_name}>{r.camera_name}</span>
+                {r.queued && <span className="rounded bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">Queued</span>}
+                {r.error && <span className="text-rose-300 text-[10px]">err</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
