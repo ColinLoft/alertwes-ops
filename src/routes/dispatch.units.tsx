@@ -20,7 +20,7 @@ async function fetchBases(): Promise<Base[]> {
 
 function UnitsPage() {
   const { data: drones = [] } = useQuery({ queryKey: ["drones"], queryFn: fetchDrones, refetchInterval: 30_000 });
-  const { data: bases = [] } = useQuery({ queryKey: ["drone_bases"], queryFn: fetchBases });
+  const { data: bases = [] } = useQuery({ queryKey: ["bases"], queryFn: fetchBases });
 
   return (
     <div className="flex h-full flex-col overflow-auto p-4 gap-5">
