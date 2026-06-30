@@ -47,10 +47,12 @@ function IncidentsPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; zoom: number; key: number } | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
   const [sweeping, setSweeping] = useState(false);
   const [sweepProgress, setSweepProgress] = useState<{ done: number; total: number } | null>(null);
   const [sweepResults, setSweepResults] = useState<null | { results: any[]; analyzed: number; created: number }>(null);
+  const [sweepPanelOpen, setSweepPanelOpen] = useState(false);
 
 
   // Realtime
