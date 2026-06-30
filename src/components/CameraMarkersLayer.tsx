@@ -110,7 +110,7 @@ export function CameraMarkersLayer({
                   const avgLng = group.reduce((sum, g) => sum + Number(g.site.longitude), 0) / group.length;
                   setPicker({ pos: [avgLat, avgLng], group });
                 } else {
-                  openCameraPopup(c);
+                  onSelect(c.site.id);
                 }
               },
             }}
