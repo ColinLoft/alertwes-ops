@@ -450,13 +450,14 @@ function SweepStatusPanel({ status, inAreaCameras, pendingShown }: {
   );
 }
 
-function TriageStrip({ suggestions, cameraHealth, onConfirm, onFalsePositive, onDismiss, onMute, onSweep, sweeping }: {
+function TriageStrip({ suggestions, cameraHealth, onConfirm, onFalsePositive, onDismiss, onMute, onFocusCamera, onSweep, sweeping }: {
   suggestions: SuggestionRow[];
   cameraHealth: Record<string, CameraHealth>;
   onConfirm: (s: SuggestionRow) => void;
   onFalsePositive: (s: SuggestionRow) => void;
   onDismiss: (id: string) => void;
   onMute: (s: SuggestionRow) => void;
+  onFocusCamera: (s: SuggestionRow) => void;
   onSweep: () => void;
   sweeping: boolean;
 }) {
