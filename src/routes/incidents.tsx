@@ -491,7 +491,7 @@ function TriageStrip({ suggestions, cameraHealth, onConfirm, onFalsePositive, on
                       {s.label}
                     </span>
                     <span className="text-[10px] font-mono text-muted-foreground">{s.confidence}%</span>
-                    <span className="ml-auto text-[10px] text-muted-foreground truncate max-w-[110px]">{s.camera_name}</span>
+                    <button onClick={() => onFocusCamera(s)} title="Show on map" className="ml-auto text-[10px] text-muted-foreground truncate max-w-[110px] hover:text-primary hover:underline text-right">{s.camera_name}</button>
                   </div>
                   <div className="flex items-center gap-1.5 text-[10px]">
                     <ShieldCheck className={`h-3 w-3 ${healthColor}`} />
