@@ -126,12 +126,19 @@ export const Route = createFileRoute("/api/planes")({
         upstream.searchParams.set("lomax", String(lomax));
         try {
           const res = await fetchWithTimeout(upstream.toString(), 7_000);
-          return new Response(await res.text(), { status: res.status, headers: jsonHeaders });
+          if (res.ok) {
+            return new Response(await res.text(), { status: 200, headers: jsonHeaders });
+          }
+          return new Response(
+            JSON.stringify({ time: Math.floor(Date.now() / 1000), states: [], fallback: true, upstream_status: res.status }),
+            { status: 200, headers: jsonHeaders },
+          );
         } catch (e) {
-          return new Response(JSON.stringify({ error: "upstream_failed", message: String(e) }), {
-            status: 502,
-            headers: jsonHeaders,
-          });
+          console.warn("[api/planes] upstream failed:", String(e));
+          return new Response(
+            JSON.stringify({ time: Math.floor(Date.now() / 1000), states: [], fallback: true, error: String(e) }),
+            { status: 200, headers: jsonHeaders },
+          );
         }
       },
     },
