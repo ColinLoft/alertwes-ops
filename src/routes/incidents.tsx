@@ -219,6 +219,7 @@ function IncidentsPage() {
         suggestions={suggestions}
         cameraHealth={cameraHealth}
         onConfirm={onPromoteSug}
+        onFocusCamera={(s) => focusCamera(s.camera_id ?? null, s.lat, s.lng)}
         onFalsePositive={async (s) => {
           try { await markFalsePositive(s.id); toast.success("Marked false positive — will improve future sweeps"); qc.invalidateQueries({ queryKey: ["suggestions"] }); qc.invalidateQueries({ queryKey: ["camera_health"] }); }
           catch (e: any) { toast.error(e?.message ?? "Failed"); }
