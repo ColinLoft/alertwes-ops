@@ -81,7 +81,7 @@ export const APPS: Record<Exclude<AppKey, "launcher">, AppConfig> = {
 };
 
 export function appForPath(pathname: string): AppKey {
-  if (/^\/(reports|bolo|citations|analytics)/.test(pathname)) return "records";
+  if (/^\/(reports|archive|audit|analytics|bolo|citations)/.test(pathname)) return "records";
   if (/^\/(fleet|bases)/.test(pathname)) return "flight";
   // CAD/Dispatch are merged — everything else falls through to the unified CAD shell.
   return "cad";
