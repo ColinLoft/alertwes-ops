@@ -13,9 +13,9 @@ export const Route = createFileRoute("/dispatch/units")({
 interface Base { id: string; code: string; name: string; lat: number | null; lng: number | null }
 
 async function fetchBases(): Promise<Base[]> {
-  const { data, error } = await supabase.from("drone_bases").select("id,code,name,lat,lng").order("code");
+  const { data, error } = await supabase.from("bases").select("id,code,name,lat,lng").order("code");
   if (error) throw error;
-  return (data ?? []) as Base[];
+  return (data ?? []) as unknown as Base[];
 }
 
 function UnitsPage() {
