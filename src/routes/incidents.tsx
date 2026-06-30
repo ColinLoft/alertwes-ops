@@ -352,71 +352,94 @@ function IncidentsPage() {
         )}
       </div>
 
-      {(sweeping || sweepResults) && (
-        <SweepResultsModal
+      {(sweeping || (sweepResults && sweepPanelOpen)) && (
+        <SweepFloatingPanel
           sweeping={sweeping}
           progress={sweepProgress}
           data={sweepResults}
-          onClose={() => setSweepResults(null)}
+          open={sweepPanelOpen}
+          onToggle={() => setSweepPanelOpen((o) => !o)}
+          onClose={() => { setSweepResults(null); setSweepPanelOpen(false); }}
+          onFocus={(camId, lat, lng) => focusCamera(camId, lat, lng)}
         />
       )}
     </div>
   );
 }
 
-function SweepResultsModal({ sweeping, progress, data, onClose }: {
+/** Non-blocking floating sweep progress + results panel pinned to bottom-right. */
+function SweepFloatingPanel({ sweeping, progress, data, open, onToggle, onClose, onFocus }: {
   sweeping: boolean;
   progress: { done: number; total: number } | null;
   data: { results: any[]; analyzed: number; created: number } | null;
+  open: boolean;
+  onToggle: () => void;
   onClose: () => void;
+  onFocus: (camId: string | null, lat?: number | null, lng?: number | null) => void;
 }) {
-  const pct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  const pct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : (data ? 100 : 0);
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl max-h-[80vh] flex flex-col rounded-xl border border-white/10 bg-[oklch(0.14_0.01_250)/0.96] shadow-2xl overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <div className="text-sm font-semibold">AI Sweep Results</div>
-          {sweeping ? (
-            <span className="text-[11px] text-muted-foreground">Analyzing {progress?.done ?? 0} / {progress?.total ?? 0}…</span>
-          ) : data ? (
-            <span className="text-[11px] text-muted-foreground">{data.analyzed} cameras analyzed · {data.created} queued for review</span>
-          ) : null}
+    <div className="pointer-events-none fixed bottom-3 right-3 z-[900] w-[380px] max-w-[95vw]">
+      <div className="pointer-events-auto rounded-xl border border-white/10 bg-[oklch(0.13_0.01_250)/0.96] shadow-2xl backdrop-blur-xl overflow-hidden">
+        <button onClick={onToggle} className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/10 hover:bg-white/5">
+          <Sparkles className={`h-4 w-4 text-primary ${sweeping ? "animate-pulse" : ""}`} />
+          <span className="text-[12px] font-semibold">AI Sweep</span>
+          <span className="text-[11px] text-muted-foreground">
+            {sweeping
+              ? `${progress?.done ?? 0}/${progress?.total ?? 0}`
+              : data ? `${data.analyzed} scanned · ${data.created} flagged` : ""}
+          </span>
+          <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">{open ? "Hide" : "Show"}</span>
           {!sweeping && (
-            <button onClick={onClose} className="ml-auto text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
+            <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="text-muted-foreground hover:text-foreground p-1">
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
+        </button>
+        <div className="px-3 py-1.5 border-b border-white/10">
+          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="mt-1 text-[10px] text-muted-foreground">{pct}% · keep working — this won't block you</div>
         </div>
-        {sweeping && (
-          <div className="px-4 py-2 border-b border-white/10">
-            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-              <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
-            </div>
+        {open && (
+          <div className="max-h-[40vh] overflow-auto p-2 space-y-1.5">
+            {(data?.results ?? []).length === 0 && !sweeping && (
+              <div className="text-xs text-muted-foreground text-center py-6">No results yet.</div>
+            )}
+            {(data?.results ?? []).map((r, i) => {
+              const tone = r.label === "fire" ? "bg-rose-500/15 border-rose-500/40 text-rose-200"
+                : r.label === "smoke" ? "bg-amber-500/15 border-amber-500/40 text-amber-200"
+                : "bg-white/[0.03] border-white/10 text-foreground/80";
+              return (
+                <button
+                  key={i}
+                  onClick={() => onFocus(r.camera_id ?? null, r.lat, r.lng)}
+                  className={`w-full rounded border px-2.5 py-2 text-[11px] flex items-center gap-2 ${tone} hover:brightness-110`}
+                  title="Show on map"
+                >
+                  {r.image_url && <img src={r.image_url} alt="" className="h-9 w-12 object-cover rounded shrink-0" />}
+                  <span className="uppercase tracking-wider text-[10px] font-bold w-11 text-left">{r.label}</span>
+                  <span className="font-mono text-[11px] w-10 text-right">{r.confidence}%</span>
+                  <span className="flex-1 truncate text-left" title={r.camera_name}>{r.camera_name}</span>
+                  {r.queued && <span className="rounded bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-300">Queued</span>}
+                </button>
+              );
+            })}
           </div>
         )}
-        <div className="flex-1 overflow-auto p-3 space-y-1.5">
-          {(data?.results ?? []).length === 0 && !sweeping && (
-            <div className="text-xs text-muted-foreground text-center py-8">No results.</div>
-          )}
-          {(data?.results ?? []).map((r, i) => {
-            const tone = r.label === "fire" ? "bg-rose-500/15 border-rose-500/40 text-rose-200"
-              : r.label === "smoke" ? "bg-amber-500/15 border-amber-500/40 text-amber-200"
-              : "bg-white/[0.03] border-white/10 text-foreground/80";
-            return (
-              <div key={i} className={`rounded border px-3 py-2 text-[11.5px] flex items-center gap-3 ${tone}`}>
-                <span className="uppercase tracking-wider text-[10px] font-bold w-12">{r.label}</span>
-                <span className="font-mono text-[11px] w-12 text-right">{r.confidence}%</span>
-                <span className="flex-1 truncate" title={r.camera_name}>{r.camera_name}</span>
-                {r.queued && <span className="rounded bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">Queued</span>}
-                {r.error && <span className="text-rose-300 text-[10px]">err</span>}
-              </div>
-            );
-          })}
-        </div>
       </div>
     </div>
   );
+}
+
+function MapFlyController({ target }: { target: { lat: number; lng: number; zoom: number; key: number } | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!target) return;
+    map.flyTo([target.lat, target.lng], target.zoom, { duration: 0.9 });
+  }, [target?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
 }
 
 
