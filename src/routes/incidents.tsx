@@ -16,7 +16,7 @@ import { getRedFlagAlerts } from "@/lib/nws.functions";
 import { getWindAtPoint } from "@/lib/synoptic.functions";
 import { sweepCameras } from "@/lib/ai-detect.functions";
 import { fetchCameras, type Camera } from "@/lib/alertwest";
-import { fetchDetectionArea, getDetectionAreaBounds, getDetectionAreaCenter, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
+import { fetchDetectionArea, getDetectionAreaCenter, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
 import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, fetchSweepStatus, fetchCameraHealth, markFalsePositive, type SuggestionRow, type CameraHealth } from "@/lib/suggestions";
 import {
   fetchIncidents,
@@ -98,12 +98,8 @@ function IncidentsPage() {
   const redFlagCount = filteredAlerts.length;
 
   // Radius filter for planes (only when area is in address/radius mode)
-  const planesRadius = useMemo(() => {
-    if (!area || area.mode !== "address") return null;
-    return { address: area.address ?? "", lat: Number(area.center_lat), lng: Number(area.center_lng), km: Number(area.radius_mi) };
-  }, [area]);
-  const areaBounds = useMemo(() => getDetectionAreaBounds(area), [area]);
   const mapCenter = useMemo(() => getDetectionAreaCenter(area), [area]);
+
 
 
   const visible = useMemo(() => {
