@@ -20,6 +20,7 @@ import { Route as CamerasRouteImport } from './routes/cameras'
 import { Route as BoloRouteImport } from './routes/bolo'
 import { Route as BasesRouteImport } from './routes/bases'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DispatchUnitsRouteImport } from './routes/dispatch.units'
@@ -81,6 +82,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArchiveRoute = ArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -111,6 +117,7 @@ const ApiPublicHooksSweepCamerasRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/archive': typeof ArchiveRoute
   '/auth': typeof AuthRoute
   '/bases': typeof BasesRoute
   '/bolo': typeof BoloRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/archive': typeof ArchiveRoute
   '/auth': typeof AuthRoute
   '/bases': typeof BasesRoute
   '/bolo': typeof BoloRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
+  '/archive': typeof ArchiveRoute
   '/auth': typeof AuthRoute
   '/bases': typeof BasesRoute
   '/bolo': typeof BoloRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analytics'
+    | '/archive'
     | '/auth'
     | '/bases'
     | '/bolo'
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/analytics'
+    | '/archive'
     | '/auth'
     | '/bases'
     | '/bolo'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/analytics'
+    | '/archive'
     | '/auth'
     | '/bases'
     | '/bolo'
@@ -223,6 +235,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  ArchiveRoute: typeof ArchiveRoute
   AuthRoute: typeof AuthRoute
   BasesRoute: typeof BasesRoute
   BoloRoute: typeof BoloRoute
@@ -317,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/archive': {
+      id: '/archive'
+      path: '/archive'
+      fullPath: '/archive'
+      preLoaderRoute: typeof ArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analytics': {
       id: '/analytics'
       path: '/analytics'
@@ -370,6 +390,7 @@ const DispatchRouteWithChildren = DispatchRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
+  ArchiveRoute: ArchiveRoute,
   AuthRoute: AuthRoute,
   BasesRoute: BasesRoute,
   BoloRoute: BoloRoute,
