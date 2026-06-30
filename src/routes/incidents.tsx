@@ -171,13 +171,16 @@ function IncidentsPage() {
         analyzed += res.analyzed;
         created += res.created;
         setSweepProgress({ done: Math.min(i + CHUNK, candidates.length), total: candidates.length });
+        // Live update so results stream in as chunks complete
+        setSweepResults({
+          results: [...allResults].sort((a, b) => {
+            const rank = (l: string) => (l === "fire" ? 0 : l === "smoke" ? 1 : 2);
+            return rank(a.label) - rank(b.label) || (b.confidence ?? 0) - (a.confidence ?? 0);
+          }),
+          analyzed,
+          created,
+        });
       }
-      // Sort by interesting first
-      allResults.sort((a, b) => {
-        const rank = (l: string) => (l === "fire" ? 0 : l === "smoke" ? 1 : 2);
-        return rank(a.label) - rank(b.label) || (b.confidence ?? 0) - (a.confidence ?? 0);
-      });
-      setSweepResults({ results: allResults, analyzed, created });
       toast.success(`Sweep complete — analyzed ${analyzed}, ${created} flagged for review`);
       qc.invalidateQueries({ queryKey: ["suggestions"] });
     } catch (e: any) {
