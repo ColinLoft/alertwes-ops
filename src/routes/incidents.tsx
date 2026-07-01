@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX, Activity, ThumbsDown, ShieldCheck } from "lucide-react";
+import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX, ThumbsDown, ShieldCheck } from "lucide-react";
 import { DispatchPanel } from "@/components/DispatchPanel";
 import { CameraMarkersLayer } from "@/components/CameraMarkersLayer";
 import { CameraPanel } from "@/components/CameraPanel";
