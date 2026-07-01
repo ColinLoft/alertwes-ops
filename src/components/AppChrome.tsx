@@ -56,18 +56,6 @@ export function appForPath(_pathname: string): AppKey {
 }
 
 
-function Clock() {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => { setNow(new Date()); const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
-  const local = now ? now.toLocaleTimeString([], { hour12: false }) : "--:--:--";
-  const dateStr = now ? now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "";
-  return (
-    <div className="hidden md:flex flex-col items-end font-mono text-[11px] leading-tight text-foreground/90" suppressHydrationWarning>
-      <span className="font-bold tracking-wider" suppressHydrationWarning>{local} PST</span>
-      <span className="text-[10px] text-muted-foreground" suppressHydrationWarning>{dateStr}</span>
-    </div>
-  );
-}
 
 function FKeyTile({ item, active, accent }: { item: NavItem; active: boolean; accent: string }) {
   const Icon = item.icon;
