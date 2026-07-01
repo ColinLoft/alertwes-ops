@@ -150,13 +150,9 @@ function IncidentsPage() {
     });
     if (candidates.length === 0) return toast.error("No in-area cameras with recent frames");
     setSweeping(true);
-    setSweepResults(null);
-    setSweepPanelOpen(true);
-    setSweepProgress({ done: 0, total: candidates.length });
-    toast.message(`AI sweeping ${candidates.length} cameras…`);
+    const toastId = toast.loading(`AI sweeping ${candidates.length} cameras…`);
     try {
       const CHUNK = 25;
-      const allResults: any[] = [];
       let analyzed = 0, created = 0;
       for (let i = 0; i < candidates.length; i += CHUNK) {
         const slice = candidates.slice(i, i + CHUNK);
@@ -174,25 +170,16 @@ function IncidentsPage() {
             })),
           },
         });
-        allResults.push(...(res.results ?? []));
         analyzed += res.analyzed;
         created += res.created;
-        setSweepProgress({ done: Math.min(i + CHUNK, candidates.length), total: candidates.length });
-        // Live update so results stream in as chunks complete
-        setSweepResults({
-          results: [...allResults].sort((a, b) => {
-            const rank = (l: string) => (l === "fire" ? 0 : l === "smoke" ? 1 : 2);
-            return rank(a.label) - rank(b.label) || (b.confidence ?? 0) - (a.confidence ?? 0);
-          }),
-          analyzed,
-          created,
-        });
+        const done = Math.min(i + CHUNK, candidates.length);
+        toast.loading(`AI sweep · ${done}/${candidates.length} · ${created} flagged`, { id: toastId });
       }
-      toast.success(`Sweep complete — analyzed ${analyzed}, ${created} flagged for review`);
+      toast.success(`Sweep complete — ${analyzed} scanned · ${created} flagged`, { id: toastId });
       qc.invalidateQueries({ queryKey: ["suggestions"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Sweep failed");
-    } finally { setSweeping(false); setSweepProgress(null); }
+      toast.error(e?.message ?? "Sweep failed", { id: toastId });
+    } finally { setSweeping(false); }
   };
 
 
