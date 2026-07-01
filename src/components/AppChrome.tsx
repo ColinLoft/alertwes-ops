@@ -1,8 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Flame, Camera, ShieldAlert, BarChart3, Plane, Warehouse, FileText,
-  Settings as SettingsIcon, Radio, Users, AlertOctagon, Archive, History,
+  Camera, ShieldAlert, BarChart3, Plane, Warehouse, FileText,
+  Settings as SettingsIcon, Radio, Users, Archive, History,
   Map as MapIcon, Power, type LucideIcon,
 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
