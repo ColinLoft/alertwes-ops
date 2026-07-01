@@ -368,27 +368,6 @@ function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => voi
   );
 }
 
-function SweepStatusPanel({ status, inAreaCameras, pendingShown }: {
-  status: { last_run_at: string | null; last_window_count: number; pending_in_area: number; total_24h: number } | undefined;
-  inAreaCameras: number;
-  pendingShown: number;
-}) {
-  const ageS = status?.last_run_at ? Math.max(0, (Date.now() - new Date(status.last_run_at).getTime()) / 1000) : null;
-  const fresh = ageS != null && ageS < 90;
-  return (
-    <div className="flex items-center gap-3 px-3 py-1.5 border-b border-white/10 glass-subtle text-[11px]">
-      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 ${fresh ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"}`}>
-        <Activity className={`h-3 w-3 ${fresh ? "animate-pulse" : ""}`} />
-        <span className="font-semibold uppercase tracking-wider text-[10px]">Sweep</span>
-      </span>
-      <span className="text-muted-foreground">Last: <span className="font-mono text-foreground">{ageS == null ? "—" : ageS < 60 ? `${Math.floor(ageS)}s ago` : `${Math.floor(ageS / 60)}m ago`}</span></span>
-      <span className="text-muted-foreground">Last 2m: <span className="font-mono text-foreground">{status?.last_window_count ?? 0}</span> queued</span>
-      <span className="text-muted-foreground">Pending: <span className="font-mono text-foreground">{pendingShown}</span></span>
-      <span className="text-muted-foreground">24h: <span className="font-mono text-foreground">{status?.total_24h ?? 0}</span></span>
-      <span className="ml-auto text-muted-foreground">Area cameras: <span className="font-mono text-foreground">{inAreaCameras}</span></span>
-    </div>
-  );
-}
 
 function TriageStrip({ suggestions, cameraHealth, onConfirm, onFalsePositive, onDismiss, onMute, onFocusCamera, onSweep, sweeping }: {
   suggestions: SuggestionRow[];
