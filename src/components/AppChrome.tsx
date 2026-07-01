@@ -170,20 +170,9 @@ export function AppChrome({ app, statusLeft, statusCenter, statusRight, bottomAc
             className="flex items-stretch overflow-x-auto border-b border-black/40"
             style={{ background: "linear-gradient(180deg, oklch(0.20 0.01 250), oklch(0.14 0.01 250))" }}
           >
-            <div className="flex h-[78px] shrink-0 items-center justify-center px-4 border-r border-white/10" style={{ background: `linear-gradient(180deg, ${accent}, color-mix(in oklab, ${accent} 60%, black))` }}>
-              <span className="text-[11px] font-black tracking-[0.2em] text-black/85">{cfg.short}</span>
-            </div>
             {cfg.nav.map((item) => (
               <FKeyTile key={item.url + item.title} item={item} active={isActive(item.url)} accent={accent} />
             ))}
-            <Link
-              to="/incidents"
-              className="ml-auto flex h-[78px] w-[110px] shrink-0 flex-col items-center justify-center gap-1 border-l border-black/40"
-              style={{ background: "linear-gradient(180deg, oklch(0.55 0.22 25), oklch(0.40 0.20 25))" }}
-            >
-              <AlertOctagon className="h-7 w-7 text-white" />
-              <span className="text-[10.5px] font-black tracking-wider text-white">EMERGENCY</span>
-            </Link>
           </div>
         )}
 
