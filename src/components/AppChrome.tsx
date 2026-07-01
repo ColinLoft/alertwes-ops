@@ -187,10 +187,7 @@ export function AppChrome({ app, statusLeft, statusCenter, statusRight, bottomAc
             </div>
             <div className="ml-auto flex items-center gap-2">
               {statusRight}
-              <Clock />
             </div>
-          </div>
-        )}
 
         {/* === Main === */}
         <main className="flex-1 min-h-0 min-w-0 relative overflow-auto">{children}</main>
