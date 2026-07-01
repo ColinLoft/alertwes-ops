@@ -80,7 +80,7 @@ function IncidentsPage() {
   const { data: suggestions = [] } = useQuery({ queryKey: ["suggestions"], queryFn: fetchPendingSuggestions, refetchInterval: 30_000 });
   const { data: cameras = [], dataUpdatedAt: camerasUpdatedAt } = useQuery({ queryKey: ["aw-cameras"], queryFn: fetchCameras, staleTime: 5 * 60_000, refetchInterval: 60_000 });
   const cameraHistory = useCameraHistory(cameras, camerasUpdatedAt);
-  const { data: sweepStatus } = useQuery({ queryKey: ["sweep_status"], queryFn: fetchSweepStatus, refetchInterval: 15_000 });
+  
   const { data: cameraHealth = {} } = useQuery({ queryKey: ["camera_health"], queryFn: fetchCameraHealth, refetchInterval: 60_000 });
 
   // Cameras restricted to the detection area for map overlay.
