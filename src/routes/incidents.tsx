@@ -61,7 +61,17 @@ function IncidentsPage() {
       .channel("cad-stream")
       .on("postgres_changes", { event: "*", schema: "public", table: "incidents" }, () => qc.invalidateQueries({ queryKey: ["incidents"] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "incident_events" }, () => qc.invalidateQueries({ queryKey: ["incident_events"] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "incident_suggestions" }, () => qc.invalidateQueries({ queryKey: ["suggestions"] }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "incident_suggestions" }, (payload: any) => {
+        qc.invalidateQueries({ queryKey: ["suggestions"] });
+        const s = payload?.new;
+        if (s && (s.label === "fire" || s.label === "smoke")) {
+          const isFire = s.label === "fire";
+          toast[isFire ? "error" : "warning"](
+            `${isFire ? "🔥 Fire" : "💨 Smoke"} detected — ${s.camera_name ?? "camera"} (${s.confidence}%)`,
+            { description: s.reasoning ?? undefined, duration: 12_000 },
+          );
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
