@@ -216,8 +216,6 @@ function IncidentsPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-44px)] overflow-hidden">
-      {/* Sweep status panel */}
-      <SweepStatusPanel status={sweepStatus} inAreaCameras={inAreaCameras.length} pendingShown={suggestions.length} />
 
       {/* Triage strip */}
       <TriageStrip
