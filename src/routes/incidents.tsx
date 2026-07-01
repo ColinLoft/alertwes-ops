@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX, Activity, ThumbsDown, ShieldCheck } from "lucide-react";
+import { Flame, RefreshCw, Wind, Thermometer, Droplets, AlertTriangle, X, Plus, Sparkles, Check, Eye, VolumeX, ThumbsDown, ShieldCheck } from "lucide-react";
 import { DispatchPanel } from "@/components/DispatchPanel";
 import { CameraMarkersLayer } from "@/components/CameraMarkersLayer";
 import { CameraPanel } from "@/components/CameraPanel";
@@ -19,7 +19,7 @@ import { sweepCameras } from "@/lib/ai-detect.functions";
 import { fetchCameras, type Camera } from "@/lib/alertwest";
 import { useCameraHistory } from "@/hooks/useCameraHistory";
 import { fetchDetectionArea, getDetectionAreaCenter, getDetectionAreaBounds, isInDetectionArea, isRegionTextInDetectionArea } from "@/lib/area";
-import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, fetchSweepStatus, fetchCameraHealth, markFalsePositive, type SuggestionRow, type CameraHealth } from "@/lib/suggestions";
+import { fetchPendingSuggestions, dismissSuggestion, promoteSuggestion, muteCamera, fetchCameraHealth, markFalsePositive, type SuggestionRow, type CameraHealth } from "@/lib/suggestions";
 import {
   fetchIncidents,
   fetchIncidentEvents,
@@ -50,9 +50,6 @@ function IncidentsPage() {
   const [flyTarget, setFlyTarget] = useState<{ lat: number; lng: number; zoom: number; key: number } | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "all">("active");
   const [sweeping, setSweeping] = useState(false);
-  const [sweepProgress, setSweepProgress] = useState<{ done: number; total: number } | null>(null);
-  const [sweepResults, setSweepResults] = useState<null | { results: any[]; analyzed: number; created: number }>(null);
-  const [sweepPanelOpen, setSweepPanelOpen] = useState(false);
 
 
   // Realtime
@@ -61,7 +58,17 @@ function IncidentsPage() {
       .channel("cad-stream")
       .on("postgres_changes", { event: "*", schema: "public", table: "incidents" }, () => qc.invalidateQueries({ queryKey: ["incidents"] }))
       .on("postgres_changes", { event: "*", schema: "public", table: "incident_events" }, () => qc.invalidateQueries({ queryKey: ["incident_events"] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "incident_suggestions" }, () => qc.invalidateQueries({ queryKey: ["suggestions"] }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "incident_suggestions" }, (payload: any) => {
+        qc.invalidateQueries({ queryKey: ["suggestions"] });
+        const s = payload?.new;
+        if (s && (s.label === "fire" || s.label === "smoke")) {
+          const isFire = s.label === "fire";
+          toast[isFire ? "error" : "warning"](
+            `${isFire ? "🔥 Fire" : "💨 Smoke"} detected — ${s.camera_name ?? "camera"} (${s.confidence}%)`,
+            { description: s.reasoning ?? undefined, duration: 12_000 },
+          );
+        }
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
@@ -73,7 +80,7 @@ function IncidentsPage() {
   const { data: suggestions = [] } = useQuery({ queryKey: ["suggestions"], queryFn: fetchPendingSuggestions, refetchInterval: 30_000 });
   const { data: cameras = [], dataUpdatedAt: camerasUpdatedAt } = useQuery({ queryKey: ["aw-cameras"], queryFn: fetchCameras, staleTime: 5 * 60_000, refetchInterval: 60_000 });
   const cameraHistory = useCameraHistory(cameras, camerasUpdatedAt);
-  const { data: sweepStatus } = useQuery({ queryKey: ["sweep_status"], queryFn: fetchSweepStatus, refetchInterval: 15_000 });
+  
   const { data: cameraHealth = {} } = useQuery({ queryKey: ["camera_health"], queryFn: fetchCameraHealth, refetchInterval: 60_000 });
 
   // Cameras restricted to the detection area for map overlay.
@@ -143,13 +150,9 @@ function IncidentsPage() {
     });
     if (candidates.length === 0) return toast.error("No in-area cameras with recent frames");
     setSweeping(true);
-    setSweepResults(null);
-    setSweepPanelOpen(true);
-    setSweepProgress({ done: 0, total: candidates.length });
-    toast.message(`AI sweeping ${candidates.length} cameras…`);
+    const toastId = toast.loading(`AI sweeping ${candidates.length} cameras…`);
     try {
       const CHUNK = 25;
-      const allResults: any[] = [];
       let analyzed = 0, created = 0;
       for (let i = 0; i < candidates.length; i += CHUNK) {
         const slice = candidates.slice(i, i + CHUNK);
@@ -167,25 +170,16 @@ function IncidentsPage() {
             })),
           },
         });
-        allResults.push(...(res.results ?? []));
         analyzed += res.analyzed;
         created += res.created;
-        setSweepProgress({ done: Math.min(i + CHUNK, candidates.length), total: candidates.length });
-        // Live update so results stream in as chunks complete
-        setSweepResults({
-          results: [...allResults].sort((a, b) => {
-            const rank = (l: string) => (l === "fire" ? 0 : l === "smoke" ? 1 : 2);
-            return rank(a.label) - rank(b.label) || (b.confidence ?? 0) - (a.confidence ?? 0);
-          }),
-          analyzed,
-          created,
-        });
+        const done = Math.min(i + CHUNK, candidates.length);
+        toast.loading(`AI sweep · ${done}/${candidates.length} · ${created} flagged`, { id: toastId });
       }
-      toast.success(`Sweep complete — analyzed ${analyzed}, ${created} flagged for review`);
+      toast.success(`Sweep complete — ${analyzed} scanned · ${created} flagged`, { id: toastId });
       qc.invalidateQueries({ queryKey: ["suggestions"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Sweep failed");
-    } finally { setSweeping(false); setSweepProgress(null); }
+      toast.error(e?.message ?? "Sweep failed", { id: toastId });
+    } finally { setSweeping(false); }
   };
 
 
@@ -222,8 +216,6 @@ function IncidentsPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-44px)] overflow-hidden">
-      {/* Sweep status panel */}
-      <SweepStatusPanel status={sweepStatus} inAreaCameras={inAreaCameras.length} pendingShown={suggestions.length} />
 
       {/* Triage strip */}
       <TriageStrip
@@ -352,86 +344,10 @@ function IncidentsPage() {
         )}
       </div>
 
-      {(sweeping || (sweepResults && sweepPanelOpen)) && (
-        <SweepFloatingPanel
-          sweeping={sweeping}
-          progress={sweepProgress}
-          data={sweepResults}
-          open={sweepPanelOpen}
-          onToggle={() => setSweepPanelOpen((o) => !o)}
-          onClose={() => { setSweepResults(null); setSweepPanelOpen(false); }}
-          onFocus={(camId, lat, lng) => focusCamera(camId, lat, lng)}
-        />
-      )}
     </div>
   );
 }
 
-/** Non-blocking floating sweep progress + results panel pinned to bottom-right. */
-function SweepFloatingPanel({ sweeping, progress, data, open, onToggle, onClose, onFocus }: {
-  sweeping: boolean;
-  progress: { done: number; total: number } | null;
-  data: { results: any[]; analyzed: number; created: number } | null;
-  open: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  onFocus: (camId: string | null, lat?: number | null, lng?: number | null) => void;
-}) {
-  const pct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : (data ? 100 : 0);
-  return (
-    <div className="pointer-events-none fixed bottom-3 right-3 z-[900] w-[380px] max-w-[95vw]">
-      <div className="pointer-events-auto rounded-xl border border-white/10 bg-[oklch(0.13_0.01_250)/0.96] shadow-2xl backdrop-blur-xl overflow-hidden">
-        <button onClick={onToggle} className="w-full flex items-center gap-2 px-3 py-2 border-b border-white/10 hover:bg-white/5">
-          <Sparkles className={`h-4 w-4 text-primary ${sweeping ? "animate-pulse" : ""}`} />
-          <span className="text-[12px] font-semibold">AI Sweep</span>
-          <span className="text-[11px] text-muted-foreground">
-            {sweeping
-              ? `${progress?.done ?? 0}/${progress?.total ?? 0}`
-              : data ? `${data.analyzed} scanned · ${data.created} flagged` : ""}
-          </span>
-          <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">{open ? "Hide" : "Show"}</span>
-          {!sweeping && (
-            <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="text-muted-foreground hover:text-foreground p-1">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </button>
-        <div className="px-3 py-1.5 border-b border-white/10">
-          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
-          </div>
-          <div className="mt-1 text-[10px] text-muted-foreground">{pct}% · keep working — this won't block you</div>
-        </div>
-        {open && (
-          <div className="max-h-[40vh] overflow-auto p-2 space-y-1.5">
-            {(data?.results ?? []).length === 0 && !sweeping && (
-              <div className="text-xs text-muted-foreground text-center py-6">No results yet.</div>
-            )}
-            {(data?.results ?? []).map((r, i) => {
-              const tone = r.label === "fire" ? "bg-rose-500/15 border-rose-500/40 text-rose-200"
-                : r.label === "smoke" ? "bg-amber-500/15 border-amber-500/40 text-amber-200"
-                : "bg-white/[0.03] border-white/10 text-foreground/80";
-              return (
-                <button
-                  key={i}
-                  onClick={() => onFocus(r.camera_id ?? null, r.lat, r.lng)}
-                  className={`w-full rounded border px-2.5 py-2 text-[11px] flex items-center gap-2 ${tone} hover:brightness-110`}
-                  title="Show on map"
-                >
-                  {r.image_url && <img src={r.image_url} alt="" className="h-9 w-12 object-cover rounded shrink-0" />}
-                  <span className="uppercase tracking-wider text-[10px] font-bold w-11 text-left">{r.label}</span>
-                  <span className="font-mono text-[11px] w-10 text-right">{r.confidence}%</span>
-                  <span className="flex-1 truncate text-left" title={r.camera_name}>{r.camera_name}</span>
-                  {r.queued && <span className="rounded bg-emerald-500/20 border border-emerald-500/40 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-300">Queued</span>}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function MapFlyController({ target }: { target: { lat: number; lng: number; zoom: number; key: number } | null }) {
   const map = useMap();
@@ -452,27 +368,6 @@ function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => voi
   );
 }
 
-function SweepStatusPanel({ status, inAreaCameras, pendingShown }: {
-  status: { last_run_at: string | null; last_window_count: number; pending_in_area: number; total_24h: number } | undefined;
-  inAreaCameras: number;
-  pendingShown: number;
-}) {
-  const ageS = status?.last_run_at ? Math.max(0, (Date.now() - new Date(status.last_run_at).getTime()) / 1000) : null;
-  const fresh = ageS != null && ageS < 90;
-  return (
-    <div className="flex items-center gap-3 px-3 py-1.5 border-b border-white/10 glass-subtle text-[11px]">
-      <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 ${fresh ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-300"}`}>
-        <Activity className={`h-3 w-3 ${fresh ? "animate-pulse" : ""}`} />
-        <span className="font-semibold uppercase tracking-wider text-[10px]">Sweep</span>
-      </span>
-      <span className="text-muted-foreground">Last: <span className="font-mono text-foreground">{ageS == null ? "—" : ageS < 60 ? `${Math.floor(ageS)}s ago` : `${Math.floor(ageS / 60)}m ago`}</span></span>
-      <span className="text-muted-foreground">Last 2m: <span className="font-mono text-foreground">{status?.last_window_count ?? 0}</span> queued</span>
-      <span className="text-muted-foreground">Pending: <span className="font-mono text-foreground">{pendingShown}</span></span>
-      <span className="text-muted-foreground">24h: <span className="font-mono text-foreground">{status?.total_24h ?? 0}</span></span>
-      <span className="ml-auto text-muted-foreground">Area cameras: <span className="font-mono text-foreground">{inAreaCameras}</span></span>
-    </div>
-  );
-}
 
 function TriageStrip({ suggestions, cameraHealth, onConfirm, onFalsePositive, onDismiss, onMute, onFocusCamera, onSweep, sweeping }: {
   suggestions: SuggestionRow[];

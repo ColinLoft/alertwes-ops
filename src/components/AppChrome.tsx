@@ -1,8 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Flame, Camera, ShieldAlert, BarChart3, Plane, Warehouse, FileText,
-  Settings as SettingsIcon, Radio, Users, AlertOctagon, Archive, History,
+  Camera, ShieldAlert, BarChart3, Plane, Warehouse, FileText,
+  Settings as SettingsIcon, Radio, Users, Archive, History,
   Map as MapIcon, Power, type LucideIcon,
 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
@@ -56,18 +56,6 @@ export function appForPath(_pathname: string): AppKey {
 }
 
 
-function Clock() {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => { setNow(new Date()); const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
-  const local = now ? now.toLocaleTimeString([], { hour12: false }) : "--:--:--";
-  const dateStr = now ? now.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : "";
-  return (
-    <div className="hidden md:flex flex-col items-end font-mono text-[11px] leading-tight text-foreground/90" suppressHydrationWarning>
-      <span className="font-bold tracking-wider" suppressHydrationWarning>{local} PST</span>
-      <span className="text-[10px] text-muted-foreground" suppressHydrationWarning>{dateStr}</span>
-    </div>
-  );
-}
 
 function FKeyTile({ item, active, accent }: { item: NavItem; active: boolean; accent: string }) {
   const Icon = item.icon;
@@ -182,20 +170,9 @@ export function AppChrome({ app, statusLeft, statusCenter, statusRight, bottomAc
             className="flex items-stretch overflow-x-auto border-b border-black/40"
             style={{ background: "linear-gradient(180deg, oklch(0.20 0.01 250), oklch(0.14 0.01 250))" }}
           >
-            <div className="flex h-[78px] shrink-0 items-center justify-center px-4 border-r border-white/10" style={{ background: `linear-gradient(180deg, ${accent}, color-mix(in oklab, ${accent} 60%, black))` }}>
-              <span className="text-[11px] font-black tracking-[0.2em] text-black/85">{cfg.short}</span>
-            </div>
             {cfg.nav.map((item) => (
               <FKeyTile key={item.url + item.title} item={item} active={isActive(item.url)} accent={accent} />
             ))}
-            <Link
-              to="/incidents"
-              className="ml-auto flex h-[78px] w-[110px] shrink-0 flex-col items-center justify-center gap-1 border-l border-black/40"
-              style={{ background: "linear-gradient(180deg, oklch(0.55 0.22 25), oklch(0.40 0.20 25))" }}
-            >
-              <AlertOctagon className="h-7 w-7 text-white" />
-              <span className="text-[10.5px] font-black tracking-wider text-white">EMERGENCY</span>
-            </Link>
           </div>
         )}
 
@@ -210,10 +187,10 @@ export function AppChrome({ app, statusLeft, statusCenter, statusRight, bottomAc
             </div>
             <div className="ml-auto flex items-center gap-2">
               {statusRight}
-              <Clock />
             </div>
           </div>
         )}
+
 
         {/* === Main === */}
         <main className="flex-1 min-h-0 min-w-0 relative overflow-auto">{children}</main>
