@@ -285,7 +285,7 @@ function IncidentsPage() {
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 relative min-w-0">
           <MapContainer key={area ? `${area.mode}-${mapCenter.lat}-${mapCenter.lng}-${area.counties.join("|")}` : "loading"} center={[mapCenter.lat, mapCenter.lng]} zoom={6} className="absolute inset-0" preferCanvas>
-            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+            <TileLayer attribution="" url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
             {hotspots.map((h, idx) => (
               <CircleMarker key={`h${idx}`} center={[h.lat, h.lng]} radius={Math.min(10, 3 + (h.frp || 0) / 10)}
                 pathOptions={{
