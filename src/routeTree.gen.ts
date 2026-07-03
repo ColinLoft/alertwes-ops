@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as MapRouteImport } from './routes/map'
 import { Route as IncidentsRouteImport } from './routes/incidents'
 import { Route as FleetRouteImport } from './routes/fleet'
 import { Route as DispatchRouteImport } from './routes/dispatch'
@@ -36,6 +37,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IncidentsRoute = IncidentsRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/dispatch': typeof DispatchRouteWithChildren
   '/fleet': typeof FleetRoute
   '/incidents': typeof IncidentsRoute
+  '/map': typeof MapRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/dispatch': typeof DispatchRouteWithChildren
   '/fleet': typeof FleetRoute
   '/incidents': typeof IncidentsRoute
+  '/map': typeof MapRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/dispatch': typeof DispatchRouteWithChildren
   '/fleet': typeof FleetRoute
   '/incidents': typeof IncidentsRoute
+  '/map': typeof MapRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/api/planes': typeof ApiPlanesRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/dispatch'
     | '/fleet'
     | '/incidents'
+    | '/map'
     | '/reports'
     | '/settings'
     | '/api/planes'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/dispatch'
     | '/fleet'
     | '/incidents'
+    | '/map'
     | '/reports'
     | '/settings'
     | '/api/planes'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/dispatch'
     | '/fleet'
     | '/incidents'
+    | '/map'
     | '/reports'
     | '/settings'
     | '/api/planes'
@@ -258,6 +270,7 @@ export interface RootRouteChildren {
   DispatchRoute: typeof DispatchRouteWithChildren
   FleetRoute: typeof FleetRoute
   IncidentsRoute: typeof IncidentsRoute
+  MapRoute: typeof MapRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   ApiPlanesRoute: typeof ApiPlanesRoute
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/incidents': {
@@ -421,6 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   DispatchRoute: DispatchRouteWithChildren,
   FleetRoute: FleetRoute,
   IncidentsRoute: IncidentsRoute,
+  MapRoute: MapRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   ApiPlanesRoute: ApiPlanesRoute,
@@ -429,13 +450,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

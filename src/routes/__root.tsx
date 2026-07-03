@@ -127,11 +127,12 @@ function RootComponent() {
   useBrandingSync();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const bare = pathname.startsWith("/auth");
+  const fullBleed = pathname === "/map" || pathname.startsWith("/map/");
   const app = appForPath(pathname);
 
   return (
     <QueryClientProvider client={queryClient}>
-      {bare ? <Outlet /> : <AppChrome app={app}><Outlet /></AppChrome>}
+      {bare || fullBleed ? <Outlet /> : <AppChrome app={app}><Outlet /></AppChrome>}
       <Toaster position="top-right" />
     </QueryClientProvider>
   );
