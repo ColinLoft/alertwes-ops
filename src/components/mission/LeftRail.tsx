@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Radio, Camera as CameraIcon, Plane as PlaneIcon, FileText, BarChart3,
-  Settings as SettingsIcon, Warehouse, ShieldAlert, Layers, Rss, Map as MapIcon,
+  Settings as SettingsIcon, Warehouse, ShieldAlert, Rss, Map as MapIcon,
 } from "lucide-react";
 import { useMission } from "@/lib/mission-store";
 import type { LucideIcon } from "lucide-react";

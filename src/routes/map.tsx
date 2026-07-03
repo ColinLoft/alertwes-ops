@@ -41,6 +41,7 @@ function MapPage() {
   const sweepFn = useServerFn(sweepCameras);
 
   const select = useMission((s) => s.select);
+  const selection = useMission((s) => s.selection);
   const flyTarget = useMission((s) => s.flyTarget);
   const flyTo = useMission((s) => s.flyTo);
   const layers = useLayers((s) => s.layers);
@@ -196,7 +197,7 @@ function MapPage() {
           {layers.cameras && (
             <CameraMarkersLayer
               cameras={inAreaCameras}
-              selectedId={useMission.getState().selection.kind === "camera" ? useMission.getState().selection.id : null}
+              selectedId={selection.kind === "camera" ? selection.id : null}
               onSelect={(id) => {
                 const c = inAreaCameras.find((c) => c.site.id === id);
                 select({ kind: "camera", id, payload: c });
