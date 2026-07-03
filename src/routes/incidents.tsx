@@ -461,10 +461,11 @@ function IncidentDetail({ incident, onClose, onStatusChange, windFn }: {
 }) {
   const { data: events = [] } = useQuery({ queryKey: ["incident_events", incident.id], queryFn: () => fetchIncidentEvents(incident.id) });
   const { data: wind, isFetching: windLoading, refetch: refetchWind } = useQuery({
-    queryKey: ["wind", incident.id],
+    queryKey: ["wind", Math.round(incident.lat * 10) / 10, Math.round(incident.lng * 10) / 10],
     queryFn: () => windFn({ data: { lat: incident.lat, lng: incident.lng } }),
-    refetchInterval: 60_000, staleTime: 30_000,
+    refetchInterval: 15 * 60_000, staleTime: 10 * 60_000, refetchOnWindowFocus: false, retry: false,
   });
+
 
   const sm = STATUS_META[incident.status]; const pm = PRIORITY_META[incident.priority]; const obs = wind?.obs;
 
