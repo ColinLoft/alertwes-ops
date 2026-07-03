@@ -145,8 +145,9 @@ function IncidentInspector({ id, onClose }: { id: string; onClose: () => void })
 /* ---------------- Camera ---------------- */
 
 function CameraInspectorWrap({ cameras, id, onClose }: { cameras: Camera[]; id: string; onClose: () => void }) {
+  const { dataUpdatedAt } = useQuery({ queryKey: ["aw-cameras"], enabled: false });
   const cam = cameras.find((c) => c.site.id === id) ?? null;
-  const history = useCameraHistory(cameras, Date.now());
+  const history = useCameraHistory(cameras, dataUpdatedAt || 0);
   return <CameraPanel camera={cam} onClose={onClose} history={history[id] ?? []} />;
 }
 
